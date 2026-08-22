@@ -1,0 +1,19 @@
+﻿<Window x:Class="MediHiStat.Remover"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MediHiStat"
+        mc:Ignorable="d"
+        Title="Remover" Height="250" Width="300"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <StackPanel>
+            <TextBox Margin="5,5,5,5" IsReadOnly="True" 
+                     TextWrapping="WrapWithOverflow" 
+                     HorizontalAlignment="Center" TextAlignment="Center">Введите Пациента</TextBox>
+            <TextBox x:Name="ToRemove" Margin="5,25,5,5"></TextBox>
+            <Button Height="20" Margin="5,25,5,5" Click="Button_Click">УДАЛИТЬ</Button>
+        </StackPanel>
+    </Grid>
+</Window>

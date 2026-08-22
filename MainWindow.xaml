@@ -1,0 +1,458 @@
+﻿<Window x:Class="MediHiStat.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MediHiStat"
+        mc:Ignorable="d"
+        Title="MediHiStat" Height="510" Width="1000">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Row="0" Grid.Column="0" Margin="3,3,3,3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0"  >
+                <DataGrid SelectionUnit="Cell" Name="TableOnePerson" Margin="3,3,3,3" AutoGenerateColumns="False" HorizontalScrollBarVisibility="Disabled" IsReadOnly="False" ItemsSource="{Binding personDataGrids}">
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Характеристика" Binding="{Binding Header}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Информация" Binding="{Binding Info}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+
+
+                </DataGrid>
+            </Grid>
+
+            <Grid Grid.Column="2" Margin="3,3,3,3" Background="#FFE3DDDD">
+                <ScrollViewer>
+                    <StackPanel>
+                        <TextBox  IsReadOnly="True" x:Name="PatientCount" Margin="3,3,3,3">Всего пациентов:</TextBox>
+                        <TextBox IsReadOnly="True" Margin="3,3,3,3">Поиск пациента</TextBox>
+                        <ComboBox Margin="3,3,3,3" x:Name="TableOnePersonPatientSearch" SelectionChanged="TableOnePersonPatientSearch_SelectionChanged" Height="20" MaxHeight="900" ></ComboBox>
+                        <!--<TextBox IsReadOnly="True" Margin="3,3,3,3">Добавить анализ</TextBox>
+                        <ComboBox Margin="3,3,3,3" x:Name="TableOnePersonAddTest"></ComboBox>
+                        <TextBox IsReadOnly="True" Margin="3,3,3,3">Убрать анализ</TextBox>
+                        <ComboBox Margin="3,3,3,3" x:Name="TableOnePersonDeleteTest"></ComboBox>
+                        <TextBox IsReadOnly="True" Margin="3,3,3,3">Добавить сутки</TextBox>
+                        <ComboBox Margin="3,3,3,3" x:Name="TableOnePersonAddDay"></ComboBox>
+                        <TextBox IsReadOnly="True" Margin="3,3,3,3">Убрать сутки</TextBox>
+                        <ComboBox Margin="3,3,3,3" x:Name="TableOnePersonDeleteDay"></ComboBox>-->
+                        <Button Height="25" Margin="3,3,3,3" x:Name="AddPerson" Click="AddPerson_Click">Добавить</Button>
+                        <Button Height="25" Margin="3,3,3,3" x:Name="RemovePerson" Click="RemovePerson_Click">Удалить</Button>
+
+
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+
+
+
+        </Grid>
+
+        <Grid Grid.Column="0" Grid.Row="1" Margin="3,3,3,3">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                <DataGrid x:Name="MainTestsOfOne" Margin="3,3,3,3" AutoGenerateColumns="False"  IsReadOnly="True" ItemsSource="{Binding Tests}">
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Показатель" Binding="{Binding TestName}" Width="*" MinWidth="75">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Поступление" Binding="{Binding Day0}" Width="*" MinWidth="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="1 Сутки" Binding="{Binding Day1}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="2 сутки" Binding="{Binding Day2}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="3 сутки" Binding="{Binding Day3}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="4 сутки" Binding="{Binding Day4}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="5 сутки" Binding="{Binding Day5}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="6 сутки" Binding="{Binding Day6}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="7 сутки" Binding="{Binding Day7}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="8 сутки" Binding="{Binding Day8}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="9-12 сутки" Binding="{Binding Day9_12}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="12-16 сутки" Binding="{Binding Day12_16}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+
+                </DataGrid>
+            </ScrollViewer>
+        </Grid>
+
+        <Grid Grid.Column="1" Grid.Row="0" >
+            <Viewbox x:Name="MainViewBox" Stretch="Uniform" Margin="3,3,3,3">
+                <Grid x:Name="Desk">
+                    <!--<Image x:Name="Specimen"  Source="Images/GBG1.png" Grid.ZIndex="0" MouseDown="Specimen_MouseDown" />-->
+                    <Rectangle Width="1560" Height="1300" Fill="White" Stroke="Black" StrokeThickness="2"/>
+                    <Polyline Points="240,100, 240, 1100, 1440, 1100, 1440, 100, 240,100" Stroke="Gray" />
+                    
+                    <Line X1="360" Y1="100" X2="360" Y2="1100"  Stroke="Gray" />
+                    <Line X1="480" Y1="100" X2="480" Y2="1100"  Stroke="Gray" />
+                    <Line X1="600" Y1="100" X2="600" Y2="1100"  Stroke="Gray" />
+                    <Line X1="720" Y1="100" X2="720" Y2="1100"  Stroke="Gray" />
+                    <Line X1="840" Y1="100" X2="840" Y2="1100"  Stroke="Gray" />
+                    <Line X1="960" Y1="100" X2="960" Y2="1100"  Stroke="Gray" />
+                    <Line X1="1080" Y1="100" X2="1080" Y2="1100"  Stroke="Gray" />
+                    <Line X1="1200" Y1="100" X2="1200" Y2="1100"  Stroke="Gray" />
+                    <Line X1="1320" Y1="100" X2="1320" Y2="1100"  Stroke="Gray" />
+
+                    <Line X1="240" Y1="200" X2="1440" Y2="200"  Stroke="Gray" />
+                    <Line X1="240" Y1="300" X2="1440" Y2="300"  Stroke="Gray" />
+                    <Line X1="240" Y1="400" X2="1440" Y2="400"  Stroke="Gray" />
+                    <Line X1="240" Y1="500" X2="1440" Y2="500"  Stroke="Gray" />
+                    <Line X1="240" Y1="600" X2="1440" Y2="600"  Stroke="Gray" />
+                    <Line X1="240" Y1="700" X2="1440" Y2="700"  Stroke="Gray" />
+                    <Line X1="240" Y1="800" X2="1440" Y2="800"  Stroke="Gray" />
+                    <Line X1="240" Y1="900" X2="1440" Y2="900"  Stroke="Gray" />
+                    <Line X1="240" Y1="1000" X2="1440" Y2="1000"  Stroke="Gray" />
+
+                    <Canvas Panel.ZIndex="2">
+                        <TextBox IsReadOnly="True" Name="Y0" Canvas.Top="1080" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >0</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y1" Canvas.Top="980" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >1</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y2" Canvas.Top="880" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >2</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y3" Canvas.Top="780" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >3</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y4" Canvas.Top="680" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >4</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y5" Canvas.Top="580" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >5</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y6" Canvas.Top="480" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >6</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y7" Canvas.Top="380" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >7</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y8" Canvas.Top="280" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >8</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y9" Canvas.Top="180" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >9</TextBox>
+                        <TextBox IsReadOnly="True" Name="Y10" Canvas.Top="80" Canvas.Left="20" FontSize="40" FontWeight="Bold" TextAlignment="Right" FlowDirection="LeftToRight" TextWrapping="NoWrap" MinWidth="170" >10</TextBox>
+
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="220" FontSize="40" FontWeight="Bold">0</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="340" FontSize="40" FontWeight="Bold">1</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="460" FontSize="40" FontWeight="Bold">2</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="580" FontSize="40" FontWeight="Bold">3</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="700" FontSize="40" FontWeight="Bold">4</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="820" FontSize="40" FontWeight="Bold">5</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="940" FontSize="40" FontWeight="Bold">6</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="1060" FontSize="40" FontWeight="Bold">7</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="1180" FontSize="40" FontWeight="Bold">8</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="1280" FontSize="40" FontWeight="Bold">9-12</TextBox>
+                        <TextBox IsReadOnly="True" Canvas.Top="20" Canvas.Left="1400" FontSize="40" FontWeight="Bold">12-16</TextBox>
+
+                        <TextBox x:Name="DeskGroup1" IsReadOnly="True" Canvas.Top="1130" Canvas.Left="280" FontSize="24"  MaxHeight="70" MaxWidth="1150" TextWrapping="Wrap">Группа 1</TextBox>
+                        <TextBox x:Name="DeskGroup2" IsReadOnly="True" Canvas.Top="1210" Canvas.Left="280" FontSize="24"  MaxHeight="70" MaxWidth="1150" TextWrapping="Wrap">Группа 2</TextBox>
+
+                        <Ellipse Canvas.Top ="1135" Canvas.Left="240" Height="30" Width="30" Fill="Red"/>
+                        <Ellipse Canvas.Top ="1215" Canvas.Left="240" Height="30" Width="30" Fill="Blue"/>
+
+
+
+
+                    </Canvas>
+                    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </Grid>
+            </Viewbox>
+        </Grid>
+
+        <Grid Grid.Column="1" Grid.Row="1">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                <DataGrid x:Name="MainTestsOfMany" Margin="3,3,3,3" IsReadOnly="True" AutoGenerateColumns="False">
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Показатель" Binding="{Binding TestName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" MinWidth="75">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Поступление" Binding="{Binding Day0}" Width="*" MinWidth="90">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="1 Сутки" Binding="{Binding Day1}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="2 сутки" Binding="{Binding Day2}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="3 сутки" Binding="{Binding Day3}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="4 сутки" Binding="{Binding Day4}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="5 сутки" Binding="{Binding Day5}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="6 сутки" Binding="{Binding Day6}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="7 сутки" Binding="{Binding Day7}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="8 сутки" Binding="{Binding Day8}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="9-12 сутки" Binding="{Binding Day9_12}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="12-16 сутки" Binding="{Binding Day12_16}" Width="*" MinWidth="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+
+                </DataGrid>
+            </ScrollViewer>
+        </Grid>
+
+        <Grid Grid.Column="2" Grid.Row="0" Margin="3,3,3,3" Background="#FFE3DDDD">
+            <ScrollViewer>
+            <StackPanel>
+                    <TextBox TextWrapping="Wrap" Height="40" x:Name="Group1name" IsReadOnly="True" Margin="3,3,3,3">Группа 1:</TextBox>
+                <ComboBox Margin="3,3,3,3" x:Name="Group1" SelectionChanged="Group1_SelectionChanged" ></ComboBox>
+                    <TextBox TextWrapping="Wrap" Height="40" x:Name="Group2name" IsReadOnly="True" Margin="3,3,3,3">Группа 2:</TextBox>
+                <ComboBox Margin="3,3,3,3" x:Name="Group2" SelectionChanged="Group2_SelectionChanged"></ComboBox>
+                <!--<TextBox IsReadOnly="True" Margin="3,3,3,3">Сравнить</TextBox>
+                <ComboBox Margin="3,3,3,3" x:Name="TableAllPersonDeleteTest"></ComboBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3">По какому анализу</TextBox>
+                <ComboBox Margin="3,3,3,3" x:Name="TableAllPersonAddDay"></ComboBox>-->
+
+                <Button Height="25" Margin="3,3,3,3" x:Name="Process" Click="Process_Click">Провести статистическую обработку</Button>
+                <Button Height="25" Margin="3,3,3,3" x:Name="TableStarter" Click="TableStarter_Click">Отобразить группу</Button>
+                    <TextBox Margin="30,3,30,3" x:Name="HowMany" TextAlignment="Center"></TextBox>
+
+
+
+            </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <Grid Grid.Column="3" Grid.Row="1" Margin="3,3,3,3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <DataGrid Name="TableAllPerson"  AutoGenerateColumns="False" HorizontalScrollBarVisibility="Disabled" IsReadOnly="False" Grid.RowSpan="2" CanUserAddRows="False" CanUserDeleteRows="False">
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Характеристика" Binding="{Binding Header}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Информация" Binding="{Binding Info}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+
+
+            </DataGrid>
+        </Grid>
+
+    </Grid>
+
+
+</Window>

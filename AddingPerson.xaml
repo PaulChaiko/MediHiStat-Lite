@@ -1,0 +1,176 @@
+﻿<Window x:Class="MediHiStat.AddingPerson"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MediHiStat"
+        mc:Ignorable="d"
+        Title="AddingPerson" Height="575" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="170"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <ScrollViewer>
+            <StackPanel>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Пациент</TextBox>
+                <TextBox x:Name="_PersonID" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Группа</TextBox>
+                <TextBox x:Name="_PatientGroup" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Возраст</TextBox>
+                <TextBox x:Name="_Age" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Пол</TextBox>
+                <TextBox x:Name="_Sex" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Рост</TextBox>
+                <TextBox x:Name="_Height" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Вес</TextBox>
+                <TextBox x:Name="_Weight" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Жалобы</TextBox>
+                <TextBox x:Name="_Complaints" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Длительность желтухи</TextBox>
+                <TextBox x:Name="_Duration" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Основной диагноз</TextBox>
+                <TextBox x:Name="_Diagnosis" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Сопутствующий</TextBox>
+                <TextBox x:Name="_AddDiagnosis" Margin="3,3,3,3"></TextBox>
+                <TextBox IsReadOnly="True" Margin="3,3,3,3" HorizontalAlignment="Center">Операция</TextBox>
+                <TextBox x:Name="_Operation" Margin="3,3,3,3"></TextBox>
+                <Button x:Name="ButtonAdd" Margin="3,3,3,3" Click="ButtonAdd_Click">ДОБАВИТЬ</Button>
+
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+        <Grid Grid.Column="1">
+            <ScrollViewer >
+
+                <DataGrid x:Name="TestsOfOne" Margin="3,3,3,3" 
+                          AutoGenerateColumns="False" 
+                          ItemsSource="{Binding OCTestsOfOne}" 
+                          CanUserAddRows="False" CanUserDeleteRows="False"
+                          SelectionUnit="Cell"
+          SelectionMode="Extended"
+          PreviewKeyDown="DataGrid_PreviewKeyDown"
+                            ClipboardCopyMode="ExcludeHeader">
+
+                <DataGrid.Columns >
+                        <DataGridTextColumn IsReadOnly="True" Header="Показатель" Binding="{Binding TestName}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="Поступление" Binding="{Binding Day0, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="1 Сутки" Binding="{Binding Day1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="2 сутки" Binding="{Binding Day2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="3 сутки" Binding="{Binding Day3, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="4 сутки" Binding="{Binding Day4, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="5 сутки" Binding="{Binding Day5, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="6 сутки" Binding="{Binding Day6, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="7 сутки" Binding="{Binding Day7, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="8 сутки" Binding="{Binding Day8, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="9-12 сутки" Binding="{Binding Day9_12, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                        <DataGridTextColumn Header="12-16 сутки" Binding="{Binding Day12_16, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="5"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+
+            </DataGrid>
+            </ScrollViewer>
+        </Grid>
+
+
+
+    </Grid>
+</Window>

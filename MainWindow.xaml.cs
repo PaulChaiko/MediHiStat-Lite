@@ -63,7 +63,7 @@ namespace MediHiStat
         public string PatientGroup
         {
             get => _PatientGroup;
-            set { PatientGroup = value; OnPropertyChanged(); }
+            set { _PatientGroup = value; OnPropertyChanged(); }
         }
 
         private int _Age;
@@ -810,7 +810,7 @@ namespace MediHiStat
                             double Temp1 = double.Parse(Temp[0], NumberStyles.Any, CultureInfo.InvariantCulture);
                             double Temp2 = double.Parse(Temp[1], NumberStyles.Any, CultureInfo.InvariantCulture);
 
-                            if (person.Height < Temp1 || person.Height > Temp2) PTS.Remove(person.PersonID);
+                            if (person.Weight < Temp1 || person.Weight > Temp2) PTS.Remove(person.PersonID);
 
 
                         }

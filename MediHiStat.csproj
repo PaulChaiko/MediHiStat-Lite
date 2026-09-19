@@ -10,11 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="StatisticsVerification\**\*.cs" />
     <None Remove="Images\GBG.png" />
     <None Remove="Images\GBG1.png" />
     <None Remove="Images\LOGO.png" />
     <None Remove="Images\Иконка.ico" />
-    <None Remove="mydatabase.db" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,9 +40,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\Иконка.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="mydatabase.db">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>

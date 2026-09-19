@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - update1
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore MediHiStat.sln
+
+      - name: Build Release
+        run: dotnet build MediHiStat.sln --configuration Release --no-restore
+
+      - name: Verify statistics
+        run: dotnet run --project StatisticsVerification/StatisticsVerification.csproj --configuration Release
+
+      - name: Publish Windows application
+        run: dotnet publish MediHiStat.csproj --configuration Release --runtime win-x64 --self-contained true --output publish
+
+      - name: Upload Windows application
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediHiStat-Lite-win-x64
+          path: publish
+          if-no-files-found: error

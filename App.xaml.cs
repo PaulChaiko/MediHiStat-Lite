@@ -1,5 +1,4 @@
-﻿using System.Configuration;
-using System.Data;
+﻿using Microsoft.Data.Sqlite;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Animation;
@@ -12,13 +11,71 @@ namespace MediHiStat
     /// </summary>
     public partial class App : Application
     {
+        private const string DatabaseConnectionString = "Data Source=mydatabase.db";
         private bool _isInitialized;
+
+        private static void InitializeDatabase()
+        {
+            using var connection = new SqliteConnection(DatabaseConnectionString);
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                CREATE TABLE IF NOT EXISTS Person (
+                    PersonID TEXT,
+                    PatientGroup TEXT,
+                    Age INTEGER,
+                    Sex TEXT,
+                    Height REAL,
+                    Weight REAL,
+                    Complaints TEXT,
+                    Duration TEXT,
+                    Diagnosis TEXT,
+                    AddDiagnosis TEXT,
+                    Operation TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS Test (
+                    PersonID TEXT,
+                    TestName TEXT,
+                    Day0 TEXT,
+                    Day1 TEXT,
+                    Day2 TEXT,
+                    Day3 TEXT,
+                    Day4 TEXT,
+                    Day5 TEXT,
+                    Day6 TEXT,
+                    Day7 TEXT,
+                    Day8 TEXT,
+                    Day9_12 TEXT,
+                    Day12_16 TEXT
+                );
+                """;
+            command.ExecuteNonQuery();
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             if (_isInitialized) return;
             _isInitialized = true;
 
             base.OnStartup(e);
+
+            try
+            {
+                InitializeDatabase();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    $"Не удалось инициализировать базу данных.\n\n{exception.Message}",
+                    "Ошибка базы данных",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                Shutdown();
+                return;
+            }
 
             var logoWindow = new LogoWindow();
 

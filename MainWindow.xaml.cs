@@ -369,7 +369,7 @@ namespace MediHiStat
 
         };
 
-        List<string> PatientL = new List<string>();
+        ObservableCollection<string> PatientL = new ObservableCollection<string>();
 
         List<TestNum> TestCal = new List<TestNum>();
         List<string> TestsList = new List<string>();
@@ -585,6 +585,8 @@ namespace MediHiStat
         {
             AddingPerson _Adding = new AddingPerson();
             _Adding.ShowDialog();
+            PersonsPull();
+            TestPull();
 
         }
 
@@ -592,8 +594,8 @@ namespace MediHiStat
         {
             Remover _Remover = new Remover();
             _Remover.ShowDialog();
-            Persons.Clear();
             PersonsPull();
+            TestPull();
 
         }
 
@@ -681,9 +683,18 @@ namespace MediHiStat
 
         private void TableOnePersonPatientSearch_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (TableOnePersonPatientSearch.SelectedItem is not string selectedPersonId)
+            {
+                return;
+            }
+
             foreach (Person person in Persons)
             {
-                if (person.PersonID.ToString() == TableOnePersonPatientSearch.SelectedItem.ToString()) { NewActvePerson(personDataGrids, person); }
+                if (person.PersonID == selectedPersonId)
+                {
+                    NewActvePerson(personDataGrids, person);
+                    break;
+                }
             }
 
         }

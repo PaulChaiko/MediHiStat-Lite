@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="StatisticsVerification\**\*.cs" />
     <None Remove="Images\GBG.png" />
     <None Remove="Images\GBG1.png" />
     <None Remove="Images\LOGO.png" />

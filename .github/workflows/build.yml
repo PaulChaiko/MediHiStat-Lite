@@ -30,3 +30,6 @@ jobs:
 
       - name: Build Release
         run: dotnet build MediHiStat.sln --configuration Release --no-restore
+
+      - name: Verify statistics
+        run: dotnet run --project StatisticsVerification/StatisticsVerification.csproj --configuration Release

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.Text;
@@ -9,9 +8,7 @@ using System.Runtime.CompilerServices;
 
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Ink;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using Microsoft.Data.Sqlite;
 
@@ -46,92 +43,6 @@ namespace MediHiStat
         //}
 
     }
-
-    public class Personalisator : INotifyPropertyChanged
-    {
-
-
-        private string _PersonID;
-
-        public string PersonID
-        {
-            get => _PersonID;
-            set { _PersonID = value; OnPropertyChanged(); }
-        }
-
-        private string _PatientGroup;
-
-        public string PatientGroup
-        {
-            get => _PatientGroup;
-            set { _PatientGroup = value; OnPropertyChanged(); }
-        }
-
-        private int _Age;
-        public int Age
-        {
-            get => _Age; set { _Age = value; OnPropertyChanged(); }
-        }
-
-
-        private string _Sex;
-        public string Sex
-        {
-            get => _Sex; set { _Sex = value; OnPropertyChanged(); }
-        }
-
-
-        private int _Weight;
-        public int Weight
-        {
-            get => _Weight; set { _Weight = value; OnPropertyChanged(); }
-        }
-
-        private int _Height;
-        public int Height
-        {
-            get => _Height; set { _Height = value; OnPropertyChanged(); }
-        }
-        private string _Complaints;
-        public string Complaints
-        {
-            get => _Complaints; set { _Complaints = value; OnPropertyChanged(); }
-        }
-
-        private string _Duration;
-        public string Duration
-        {
-            get => _Duration; set { _Duration = value; OnPropertyChanged(); }
-        }
-
-        private string _Diagnosis;
-        public string Diagnosis
-        {
-            get => _Diagnosis; set { _Diagnosis = value; OnPropertyChanged(); }
-        }
-
-        private string _AddDiagnosis;
-        public string AddDiagnosis
-        {
-            get => _AddDiagnosis; set { _AddDiagnosis = value; OnPropertyChanged(); }
-        }
-
-        private string _Operation;
-
-        public string Operation
-        {
-            get => _Operation; set { _Operation = value; OnPropertyChanged(); }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-    }
-
-
 
     public class PersonDataGrid
     {
@@ -309,18 +220,6 @@ namespace MediHiStat
     }
 
 
-    public class MainViewModel : INotifyPropertyChanged
-    {
-        public ObservableCollection<Test> Tests { get; }
-
-        public MainViewModel()
-        {
-
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-    }
-
     public partial class MainWindow : Window
     {
 
@@ -330,13 +229,7 @@ namespace MediHiStat
 
         public List<Test> TestsOfOne = new List<Test>();
 
-        public Person ActivePerson = new Person();
-
-        public Personalisator PL = new Personalisator();
-
         int N0=0;
-        int N1=0;
-        int N2=0;
 
 
         public ObservableCollection<PersonDataGrid> personDataGrids = new ObservableCollection<PersonDataGrid>
@@ -420,100 +313,6 @@ namespace MediHiStat
         }
 
 
-
-
-
-        public class TestsFirst
-        {
-            public int PatientID { get; set; }
-            public string Day { get; set; }
-            public string BP { get; set; }
-            public int HR { get; set; }
-            public int RR { get; set; }
-            public int T { get; set; }
-            public string ECG { get; set; }
-            public int BileVolume { get; set; }
-            public int Ht { get; set; }
-            public int Hb { get; set; }
-            public int Erythrocytes { get; set; }
-            public int Platelets { get; set; }
-            public int Leukocytes { get; set; }
-            public int Neutrophils { get; set; }
-            public int Lymphocytes { get; set; }
-            public int TotalProtein { get; set; }
-            public int Albumin { get; set; }
-            public int AST { get; set; }
-            public int ALT { get; set; }
-            public int ALP { get; set; }
-            public int GGT { get; set; }
-            public int LDH { get; set; }
-            public int TotalBilirubin { get; set; }
-            public int DirectBilirubin { get; set; }
-            public int BloodAmylase { get; set; }
-            public int BloodGlucose { get; set; }
-            public int Potassium { get; set; }
-            public int Sodium { get; set; }
-            public int Magnesium { get; set; }
-            public int Calcium { get; set; }
-            public int Iron { get; set; }
-            public int Creatinine { get; set; }
-            public int CreatinineClearance { get; set; }
-            public int BloodUrea { get; set; }
-            public int UricAcid { get; set; }
-            public int C_reactiveProtein { get; set; }
-            public int TotalCholesterol { get; set; }
-
-            public int Triglycerides { get; set; }
-            public int HDL { get; set; }
-            public int LDL { get; set; }
-            public int Procalcitonin { get; set; }
-            public int INR { get; set; }
-            public int PT { get; set; }
-            public int PTI { get; set; }
-            public int APTT { get; set; }
-            public int Fibrinogen { get; set; }
-            public int UrineWeight { get; set; }
-            public int pH { get; set; }
-            public int Nitrites { get; set; }
-            public int Protein { get; set; }
-            public int UrineGlucose { get; set; }
-            public int Ketones { get; set; }
-            public string Urobilinogen { get; set; }
-            public string UrineBilirubin { get; set; }
-            public int UrineRedBloodCells { get; set; }
-            public int UrineWhiteBloodCells { get; set; }
-            public int NumberBondTestSec { get; set; }
-            public int PE_stage { get; set; }
-            public int CVR { get; set; }
-            public int CCR { get; set; }
-            public int Choledocholedochus { get; set; }
-            public int PancreaticHead { get; set; }
-            public string Intrahepatic { get; set; }
-            public int GalleryWall { get; set; }
-            public int GalleryLength { get; set; }
-            public int GalleryWidth { get; set; }
-            public string BlockLevel { get; set; }
-            public string HIV { get; set; }
-            public string Hepatitis_B { get; set; }
-            public string Hepatitis_C { get; set; }
-            public string Syphilis { get; set; }
-
-            public TestsFirst()
-            {
-                Day = "";
-                BP = "";
-                ECG = "";
-                Urobilinogen = "";
-                UrineBilirubin = "";
-                Intrahepatic = "";
-                BlockLevel = "";
-                HIV = "";
-                Hepatitis_B = "";
-                Hepatitis_C = "";
-                Syphilis = "";
-            }
-
-        }
 
 
 
@@ -976,7 +775,6 @@ namespace MediHiStat
             }
 
             Check1 = false;
-            N1 = Group1PatientIds.Count;
         }
 
         private void Group2_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1018,7 +816,6 @@ namespace MediHiStat
             }
 
             Check2 = false;
-            N2 = Group2PatientIds.Count;
         }
 
         private static List<double>[] ExtractTimePointSamples(IEnumerable<Test> observations)

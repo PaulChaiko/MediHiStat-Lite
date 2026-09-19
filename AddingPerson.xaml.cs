@@ -169,97 +169,122 @@ namespace MediHiStat
 
         private void ButtonAdd_Click(object sender, RoutedEventArgs e)
         {
-           _Height.Text= _Height.Text.Replace(" ", "");
-            _Height.Text = _Height.Text.Replace(",", ".");
-            _Weight.Text = _Weight.Text.Replace(" ", "");
-            _Weight.Text = _Weight.Text.Replace(",", ".");
-            _Age.Text=_Age.Text.Replace(" ", "");
+            string personId = _PersonID.Text.Trim();
+            string ageText = _Age.Text.Replace(" ", "");
+            string heightText = _Height.Text.Replace(" ", "").Replace(",", ".");
+            string weightText = _Weight.Text.Replace(" ", "").Replace(",", ".");
 
+            if (string.IsNullOrWhiteSpace(personId))
+            {
+                MessageBox.Show("Укажите идентификатор пациента.", "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
-           
-            double H = double.Parse(_Height.Text, CultureInfo.InvariantCulture);
-            double W = double.Parse(_Weight.Text, CultureInfo.InvariantCulture);
-           // MessageBox.Show($"Height = {H} ?? WEight = {W}");
+            if (!int.TryParse(ageText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int age) || age < 0)
+            {
+                MessageBox.Show("Возраст должен быть целым неотрицательным числом.", "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!double.TryParse(heightText, NumberStyles.Float, CultureInfo.InvariantCulture, out double height) || height <= 0)
+            {
+                MessageBox.Show("Рост должен быть положительным числом.", "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!double.TryParse(weightText, NumberStyles.Float, CultureInfo.InvariantCulture, out double weight) || weight <= 0)
+            {
+                MessageBox.Show("Вес должен быть положительным числом.", "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             Person person = new Person
             {
-                PersonID = _PersonID.Text,
+                PersonID = personId,
                 PatientGroup = _PatientGroup.Text,
-                Age = Convert.ToInt32(_Age.Text),
+                Age = age,
                 Sex = _Sex.Text,
-                Height =H,
-                Weight = W,
+                Height = height,
+                Weight = weight,
                 Complaints = _Complaints.Text,
                 Duration = _Duration.Text,
                 Diagnosis = _Diagnosis.Text,
                 AddDiagnosis = _AddDiagnosis.Text,
-                Operation = _Operation.Text,
-
-
+                Operation = _Operation.Text
             };
 
-
             foreach (Test item in OCTestsOfOne)
             {
-                item.PersonID = _PersonID.Text;
+                item.PersonID = personId;
             }
 
-            using (var connection = new SqliteConnection("Data Source=mydatabase.db"))
+            using var connection = new SqliteConnection("Data Source=mydatabase.db");
+            connection.Open();
+
+            using (var duplicateCommand = connection.CreateCommand())
             {
-                connection.Open();
-                string sql = "INSERT INTO Person (PersonID, PatientGroup, Age, Sex, Height, Weight, Complaints, Duration, Diagnosis, AddDiagnosis, Operation) " +
-                    "VALUES (@PersonID, @PatientGroup, @Age, @Sex, @Height, @Weight, @Complaints, @Duration, @Diagnosis, @AddDiagnosis, @Operation )";
-                var command = new SqliteCommand(sql, connection);
+                duplicateCommand.CommandText = "SELECT COUNT(1) FROM Person WHERE PersonID = @PersonID";
+                duplicateCommand.Parameters.AddWithValue("@PersonID", personId);
 
-                command.Parameters.AddWithValue("@PersonID", person.PersonID);
-                command.Parameters.AddWithValue("@PatientGroup", person.PatientGroup);
-                command.Parameters.AddWithValue("@Age", person.Age);
-                command.Parameters.AddWithValue("@Sex", person.Sex);
-                command.Parameters.AddWithValue("@Height", person.Height);
-                command.Parameters.AddWithValue("@Weight", person.Weight);
-                command.Parameters.AddWithValue("@Complaints", person.Complaints);
-                command.Parameters.AddWithValue("@Duration", person.Duration);
-                command.Parameters.AddWithValue("@Diagnosis", person.Diagnosis);
-                command.Parameters.AddWithValue("@AddDiagnosis", person.AddDiagnosis);
-                command.Parameters.AddWithValue("@Operation", person.Operation);
-
-                command.ExecuteNonQuery();
-
-            }
-
-
-            foreach (Test item in OCTestsOfOne)
-            {
-                using (var connection = new SqliteConnection("Data Source=mydatabase.db"))
+                if (Convert.ToInt32(duplicateCommand.ExecuteScalar()) > 0)
                 {
-                    connection.Open();
-                    string sql = "INSERT INTO Test (PersonID, TestName, Day0, Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9_12, Day12_16) " +
-                        "VALUES (@PersonID, @TestName, @Day0, @Day1, @Day2, @Day3, @Day4, @Day5, @Day6, @Day7, @Day8, @Day9_12, @Day12_16 )";
-                    var command = new SqliteCommand(sql, connection);
+                    MessageBox.Show("Пациент с таким идентификатором уже существует.", "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
 
-                    command.Parameters.AddWithValue("@PersonID", item.PersonID==null ? "": item.PersonID);
-                    command.Parameters.AddWithValue("@TestName", item.TestName==null ? "" : item.TestName);
-                    command.Parameters.AddWithValue("@Day0", item.Day0 == null ? "" : item.Day0);
-                    command.Parameters.AddWithValue("@Day1", item.Day1 == null ? "" : item.Day1);
-                    command.Parameters.AddWithValue("@Day2", item.Day2 == null ? "" : item.Day2);
-                    command.Parameters.AddWithValue("@Day3", item.Day3 == null ? "" : item.Day3);
-                    command.Parameters.AddWithValue("@Day4", item.Day4 == null ? "" : item.Day4);
-                    command.Parameters.AddWithValue("@Day5", item.Day5 == null ? "" : item.Day5);
-                    command.Parameters.AddWithValue("@Day6", item.Day6 == null ? "" : item.Day6);
-                    command.Parameters.AddWithValue("@Day7", item.Day7 == null ? "" : item.Day7);
-                    command.Parameters.AddWithValue("@Day8", item.Day8 == null ? "" : item.Day8);
-                    command.Parameters.AddWithValue("@Day9_12", item.Day9_12 == null ? "" : item.Day9_12);
-                    command.Parameters.AddWithValue("@Day12_16", item.Day12_16 == null ? "" : item.Day12_16);
+            using var transaction = connection.BeginTransaction();
 
+            try
+            {
+                const string personSql = "INSERT INTO Person (PersonID, PatientGroup, Age, Sex, Height, Weight, Complaints, Duration, Diagnosis, AddDiagnosis, Operation) " +
+                    "VALUES (@PersonID, @PatientGroup, @Age, @Sex, @Height, @Weight, @Complaints, @Duration, @Diagnosis, @AddDiagnosis, @Operation)";
+                using var personCommand = new SqliteCommand(personSql, connection, transaction);
+                personCommand.Parameters.AddWithValue("@PersonID", person.PersonID);
+                personCommand.Parameters.AddWithValue("@PatientGroup", person.PatientGroup);
+                personCommand.Parameters.AddWithValue("@Age", person.Age);
+                personCommand.Parameters.AddWithValue("@Sex", person.Sex);
+                personCommand.Parameters.AddWithValue("@Height", person.Height);
+                personCommand.Parameters.AddWithValue("@Weight", person.Weight);
+                personCommand.Parameters.AddWithValue("@Complaints", person.Complaints);
+                personCommand.Parameters.AddWithValue("@Duration", person.Duration);
+                personCommand.Parameters.AddWithValue("@Diagnosis", person.Diagnosis);
+                personCommand.Parameters.AddWithValue("@AddDiagnosis", person.AddDiagnosis);
+                personCommand.Parameters.AddWithValue("@Operation", person.Operation);
+                personCommand.ExecuteNonQuery();
 
-                    command.ExecuteNonQuery();
+                const string testSql = "INSERT INTO Test (PersonID, TestName, Day0, Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9_12, Day12_16) " +
+                    "VALUES (@PersonID, @TestName, @Day0, @Day1, @Day2, @Day3, @Day4, @Day5, @Day6, @Day7, @Day8, @Day9_12, @Day12_16)";
 
+                foreach (Test item in OCTestsOfOne)
+                {
+                    using var testCommand = new SqliteCommand(testSql, connection, transaction);
+                    testCommand.Parameters.AddWithValue("@PersonID", item.PersonID ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@TestName", item.TestName ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day0", item.Day0 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day1", item.Day1 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day2", item.Day2 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day3", item.Day3 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day4", item.Day4 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day5", item.Day5 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day6", item.Day6 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day7", item.Day7 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day8", item.Day8 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day9_12", item.Day9_12 ?? string.Empty);
+                    testCommand.Parameters.AddWithValue("@Day12_16", item.Day12_16 ?? string.Empty);
+                    testCommand.ExecuteNonQuery();
                 }
 
-
-
-
+                transaction.Commit();
             }
-            this.Close();
+            catch (Exception exception)
+            {
+                transaction.Rollback();
+                MessageBox.Show($"Не удалось сохранить пациента.\n\n{exception.Message}", "Ошибка сохранения", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            DialogResult = true;
         }
     }
 }

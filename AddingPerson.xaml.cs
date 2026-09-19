@@ -1,19 +1,11 @@
 ﻿using Microsoft.Data.Sqlite;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace MediHiStat
 {
@@ -288,73 +280,3 @@ namespace MediHiStat
         }
     }
 }
-
-//public class DatabaseService
-//{
-//    private string _connectionString = "Data Source=mydatabase.db;Version=3;";
-
-//    public void InitializeDatabase()
-//    {
-//        if (!File.Exists("mydatabase.db"))
-//        {
-//            SQLiteConnection.CreateFile("mydatabase.db");
-
-//            using (var connection = new SQLiteConnection(_connectionString))
-//            {
-//                connection.Open();
-
-//                string sql = @"CREATE TABLE Products (
-//                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-//                                Name TEXT NOT NULL,
-//                                Price REAL NOT NULL)";
-
-//                var command = new SQLiteCommand(sql, connection);
-//                command.ExecuteNonQuery();
-//            }
-//        }
-//    }
-
-//    public List<Product> GetProducts()
-//    {
-//        var products = new List<Product>();
-
-//        using (var connection = new SQLiteConnection(_connectionString))
-//        {
-//            connection.Open();
-
-//            string sql = "SELECT * FROM Products";
-//            var command = new SQLiteCommand(sql, connection);
-
-//            using (var reader = command.ExecuteReader())
-//            {
-//                while (reader.Read())
-//                {
-//                    products.Add(new Product
-//                    {
-//                        Id = Convert.ToInt32(reader["Id"]),
-//                        Name = reader["Name"].ToString(),
-//                        Price = Convert.ToDecimal(reader["Price"])
-//                    });
-//                }
-//            }
-//        }
-
-//        return products;
-//    }
-
-//    public void AddProduct(Product product)
-//    {
-//        using (var connection = new SQLiteConnection(_connectionString))
-//        {
-//            connection.Open();
-
-//            string sql = "INSERT INTO Products (Name, Price) VALUES (@Name, @Price)";
-//            var command = new SQLiteCommand(sql, connection);
-
-//            command.Parameters.AddWithValue("@Name", product.Name);
-//            command.Parameters.AddWithValue("@Price", product.Price);
-
-//            command.ExecuteNonQuery();
-//        }
-//    }
-//}

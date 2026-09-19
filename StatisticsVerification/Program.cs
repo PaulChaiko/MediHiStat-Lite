@@ -29,6 +29,11 @@ AssertClose(0, separated.U, "Некорректный U для полность�
 AssertClose(0.1, separated.PValue, "Некорректный точный двусторонний p-value.");
 Assert(separated.UsedExactPValue, "Для малого контрольного набора не использован точный перестановочный расчёт.");
 
+double[] holmAdjusted = StatisticsCalculator.AdjustPValuesHolm(new[] { 0.01, 0.04, 0.03 });
+AssertClose(0.03, holmAdjusted[0], "Некорректная поправка Холма для минимального p-value.");
+AssertClose(0.06, holmAdjusted[1], "Нарушена монотонность поправки Холма.");
+AssertClose(0.06, holmAdjusted[2], "Некорректная поправка Холма для второго p-value.");
+
 Console.WriteLine("Все контрольные статистические расчёты выполнены успешно.");
 
 static void Assert(bool condition, string message)

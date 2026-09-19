@@ -133,6 +133,31 @@ namespace MediHiStat
                 useExactPValue);
         }
 
+        public static double[] AdjustPValuesHolm(IReadOnlyList<double> pValues)
+        {
+            if (pValues.Any(pValue => double.IsNaN(pValue) || pValue < 0 || pValue > 1))
+            {
+                throw new ArgumentOutOfRangeException(nameof(pValues), "Каждый p-value должен находиться в диапазоне от 0 до 1.");
+            }
+
+            int[] orderedIndexes = Enumerable.Range(0, pValues.Count)
+                .OrderBy(index => pValues[index])
+                .ToArray();
+            double[] adjustedPValues = new double[pValues.Count];
+            double previousAdjustedValue = 0;
+
+            for (int rank = 0; rank < orderedIndexes.Length; rank++)
+            {
+                int originalIndex = orderedIndexes[rank];
+                double adjustedValue = Math.Min(1, (pValues.Count - rank) * pValues[originalIndex]);
+                adjustedValue = Math.Max(previousAdjustedValue, adjustedValue);
+                adjustedPValues[originalIndex] = adjustedValue;
+                previousAdjustedValue = adjustedValue;
+            }
+
+            return adjustedPValues;
+        }
+
         private static bool CombinationCountAtMost(int total, int selected, int limit)
         {
             selected = Math.Min(selected, total - selected);

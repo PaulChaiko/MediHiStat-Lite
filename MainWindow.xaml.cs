@@ -962,24 +962,42 @@ namespace MediHiStat
 
             var resultText = new StringBuilder();
             resultText.AppendLine($"Показатель: {G1.TestName}");
-            resultText.AppendLine("U-критерий Манна—Уитни, двусторонний p-value");
+            resultText.AppendLine("U-критерий Манна—Уитни, двусторонний p-value, поправка Холма");
             resultText.AppendLine();
+
+            var results = new MannWhitneyResult?[timePointNames.Length];
+            for (int index = 0; index < timePointNames.Length; index++)
+            {
+                if (group1Samples[index].Count > 0 && group2Samples[index].Count > 0)
+                {
+                    results[index] = StatisticsCalculator.CalculateMannWhitney(
+                        group1Samples[index],
+                        group2Samples[index]);
+                }
+            }
+
+            double[] adjustedPValues = StatisticsCalculator.AdjustPValuesHolm(
+                results
+                    .Where(result => result.HasValue)
+                    .Select(result => result!.Value.PValue)
+                    .ToArray());
+            int adjustedPValueIndex = 0;
 
             for (int index = 0; index < timePointNames.Length; index++)
             {
-                if (group1Samples[index].Count == 0 || group2Samples[index].Count == 0)
+                if (!results[index].HasValue)
                 {
                     resultText.AppendLine($"{timePointNames[index]}: недостаточно числовых данных");
                     continue;
                 }
 
-                MannWhitneyResult result = StatisticsCalculator.CalculateMannWhitney(
-                    group1Samples[index],
-                    group2Samples[index]);
+                MannWhitneyResult result = results[index]!.Value;
+                double adjustedPValue = adjustedPValues[adjustedPValueIndex++];
                 string method = result.UsedExactPValue ? "точный" : "асимптотический";
                 resultText.AppendLine(
                     $"{timePointNames[index]}: n₁={result.Group1Count}; n₂={result.Group2Count}; " +
-                    $"U={Math.Round(result.U, 3)}; p={result.PValue.ToString("0.####", CultureInfo.CurrentCulture)} ({method})");
+                    $"U={Math.Round(result.U, 3)}; p={result.PValue.ToString("0.####", CultureInfo.CurrentCulture)}; " +
+                    $"p(Holm)={adjustedPValue.ToString("0.####", CultureInfo.CurrentCulture)} ({method})");
             }
 
             MessageBox.Show(resultText.ToString(), "Статистическая обработка", MessageBoxButton.OK, MessageBoxImage.Information);

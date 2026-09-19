@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.Text;
 
 using System.Runtime.CompilerServices;
 
@@ -1585,60 +1586,257 @@ namespace MediHiStat
 
         private void Group1_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if(TestCal.Count!=0)
+            if (Group1.SelectedItem is not string selectedTestName || TestCal.Count == 0)
             {
-                foreach (var t in TestCal)
+                return;
+            }
+
+            TestNum? selectedMean = TestCal.FirstOrDefault(test => test.TestName == selectedTestName);
+            if (selectedMean is null)
+            {
+                return;
+            }
+
+            G1 = selectedMean;
+            Group1PatientIds = new List<string>(CurrentGroupPatientIds);
+            Group1Observations = CurrentGroupTests
+                .Where(test => test.TestName == selectedTestName)
+                .ToList();
+
+
+            if (Check1)
+            {
+                Group1name.Text = "Группа 1: ";
+
+                foreach (var item in personDataGrids2)
                 {
-                    if (t.TestName == Group1.SelectedItem.ToString()) G1=t;
-                }
-
-
-                if (Check1)
-                {
-                    Group1name.Text = "Группа 1: ";
-
-                    foreach (var t in personDataGrids2)
+                    if (!string.IsNullOrWhiteSpace(item.Info))
                     {
-                        if (t.Info != "") { Group1name.Text += t.Info; Group1name.Text += "; "; }
-
+                        Group1name.Text += item.Info;
+                        Group1name.Text += "; ";
                     }
                 }
-
-                if (Group1name.Text == "Группа 1: ") Group1name.Text += "Все пациенты";
-                Check1 = false;
-
-                N1 = N0;
             }
+
+            if (Group1name.Text == "Группа 1: ")
+            {
+                Group1name.Text += "Все пациенты";
+            }
+
+            Check1 = false;
+            N1 = Group1PatientIds.Count;
         }
 
         private void Group2_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (TestCal.Count != 0)
+            if (Group2.SelectedItem is not string selectedTestName || TestCal.Count == 0)
             {
-                foreach (var t in TestCal)
-                {
-                    if (t.TestName == Group2.SelectedItem.ToString()) G2 = t;
-                }
+                return;
+            }
 
-                if (Check2)
-                {
-                    Group2name.Text = "Группа 2: ";
+            TestNum? selectedMean = TestCal.FirstOrDefault(test => test.TestName == selectedTestName);
+            if (selectedMean is null)
+            {
+                return;
+            }
 
-                    foreach (var t in personDataGrids2)
+            G2 = selectedMean;
+            Group2PatientIds = new List<string>(CurrentGroupPatientIds);
+            Group2Observations = CurrentGroupTests
+                .Where(test => test.TestName == selectedTestName)
+                .ToList();
+
+            if (Check2)
+            {
+                Group2name.Text = "Группа 2: ";
+
+                foreach (var item in personDataGrids2)
+                {
+                    if (!string.IsNullOrWhiteSpace(item.Info))
                     {
-                        if (t.Info != "") { Group2name.Text += t.Info; Group2name.Text += "; "; }
-
+                        Group2name.Text += item.Info;
+                        Group2name.Text += "; ";
                     }
                 }
-
-                if (Group2name.Text == "Группа 2: ") Group2name.Text += "Все пациенты";
-                Check2 = false;
-
-                N2 = N0;
             }
+
+            if (Group2name.Text == "Группа 2: ")
+            {
+                Group2name.Text += "Все пациенты";
+            }
+
+            Check2 = false;
+            N2 = Group2PatientIds.Count;
+        }
+
+        private static List<double>[] ExtractTimePointSamples(IEnumerable<Test> observations)
+        {
+            List<double>[] samples = Enumerable.Range(0, 11)
+                .Select(_ => new List<double>())
+                .ToArray();
+
+            foreach (Test observation in observations)
+            {
+                string[] values = GetTimePointValues(observation);
+                for (int index = 0; index < values.Length; index++)
+                {
+                    if (StatisticsCalculator.TryParseMeasurement(values[index], out double value))
+                    {
+                        samples[index].Add(value);
+                    }
+                }
+            }
+
+            return samples;
+        }
+
+        private void DrawComparisonGraph(
+            IReadOnlyList<List<double>> group1Samples,
+            IReadOnlyList<List<double>> group2Samples)
+        {
+            double?[] group1Means = group1Samples
+                .Select(sample => sample.Count == 0 ? (double?)null : sample.Average())
+                .ToArray();
+            double?[] group2Means = group2Samples
+                .Select(sample => sample.Count == 0 ? (double?)null : sample.Average())
+                .ToArray();
+
+            double[] availableMeans = group1Means
+                .Concat(group2Means)
+                .Where(mean => mean.HasValue)
+                .Select(mean => mean!.Value)
+                .ToArray();
+
+            if (availableMeans.Length == 0)
+            {
+                return;
+            }
+
+            double maximum = Math.Max(0, availableMeans.Max());
+            double scaleMaximum = maximum > 0 ? maximum * 1.1 : 1;
+
+            Y10.Text = Math.Round(scaleMaximum, 2).ToString(CultureInfo.CurrentCulture);
+            Y9.Text = Math.Round(scaleMaximum * 0.9, 2).ToString(CultureInfo.CurrentCulture);
+            Y8.Text = Math.Round(scaleMaximum * 0.8, 2).ToString(CultureInfo.CurrentCulture);
+            Y7.Text = Math.Round(scaleMaximum * 0.7, 2).ToString(CultureInfo.CurrentCulture);
+            Y6.Text = Math.Round(scaleMaximum * 0.6, 2).ToString(CultureInfo.CurrentCulture);
+            Y5.Text = Math.Round(scaleMaximum * 0.5, 2).ToString(CultureInfo.CurrentCulture);
+            Y4.Text = Math.Round(scaleMaximum * 0.4, 2).ToString(CultureInfo.CurrentCulture);
+            Y3.Text = Math.Round(scaleMaximum * 0.3, 2).ToString(CultureInfo.CurrentCulture);
+            Y2.Text = Math.Round(scaleMaximum * 0.2, 2).ToString(CultureInfo.CurrentCulture);
+            Y1.Text = Math.Round(scaleMaximum * 0.1, 2).ToString(CultureInfo.CurrentCulture);
+
+            Desk.Children.Remove(PG1);
+            Desk.Children.Remove(PG2);
+
+            PG1 = CreateGraphLine(group1Means, scaleMaximum, Brushes.Red);
+            PG2 = CreateGraphLine(group2Means, scaleMaximum, Brushes.Blue);
+            Desk.Children.Add(PG1);
+            Desk.Children.Add(PG2);
+
+            DeskGroup1.Text = $"{Group1name.Text} {G1.TestName}";
+            DeskGroup2.Text = $"{Group2name.Text} {G2.TestName}";
+        }
+
+        private static Polyline CreateGraphLine(
+            IReadOnlyList<double?> means,
+            double scaleMaximum,
+            Brush color)
+        {
+            var points = new PointCollection();
+
+            for (int index = 0; index < means.Count; index++)
+            {
+                if (!means[index].HasValue)
+                {
+                    continue;
+                }
+
+                double x = 240 + 120 * index;
+                double y = 1300 - ((means[index]!.Value / scaleMaximum * 1000) + 200);
+                points.Add(new Point(x, y));
+            }
+
+            return new Polyline
+            {
+                Points = points,
+                Stroke = color,
+                StrokeThickness = 3
+            };
         }
 
         private void Process_Click(object sender, RoutedEventArgs e)
+        {
+            if (Group1Observations.Count == 0 || Group2Observations.Count == 0)
+            {
+                MessageBox.Show("Сначала сформируйте обе группы и выберите показатель для каждой из них.", "Статистическая обработка", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (!string.Equals(G1.TestName, G2.TestName, StringComparison.Ordinal))
+            {
+                MessageBox.Show("Для сравнения двух групп выберите один и тот же показатель.", "Статистическая обработка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string[] overlappingPatients = Group1PatientIds
+                .Intersect(Group2PatientIds)
+                .ToArray();
+            if (overlappingPatients.Length > 0)
+            {
+                MessageBox.Show(
+                    "Группы пересекаются по пациентам. U-критерий Манна—Уитни применяется к независимым группам; сформируйте непересекающиеся выборки.",
+                    "Статистическая обработка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            List<double>[] group1Samples = ExtractTimePointSamples(Group1Observations);
+            List<double>[] group2Samples = ExtractTimePointSamples(Group2Observations);
+            DrawComparisonGraph(group1Samples, group2Samples);
+
+            string[] timePointNames =
+            {
+                "0 сутки",
+                "1 сутки",
+                "2 сутки",
+                "3 сутки",
+                "4 сутки",
+                "5 сутки",
+                "6 сутки",
+                "7 сутки",
+                "8 сутки",
+                "9–12 сутки",
+                "12–16 сутки"
+            };
+
+            var resultText = new StringBuilder();
+            resultText.AppendLine($"Показатель: {G1.TestName}");
+            resultText.AppendLine("U-критерий Манна—Уитни, двусторонний p-value");
+            resultText.AppendLine();
+
+            for (int index = 0; index < timePointNames.Length; index++)
+            {
+                if (group1Samples[index].Count == 0 || group2Samples[index].Count == 0)
+                {
+                    resultText.AppendLine($"{timePointNames[index]}: недостаточно числовых данных");
+                    continue;
+                }
+
+                MannWhitneyResult result = StatisticsCalculator.CalculateMannWhitney(
+                    group1Samples[index],
+                    group2Samples[index]);
+                string method = result.UsedExactPValue ? "точный" : "асимптотический";
+                resultText.AppendLine(
+                    $"{timePointNames[index]}: n₁={result.Group1Count}; n₂={result.Group2Count}; " +
+                    $"U={Math.Round(result.U, 3)}; p={result.PValue.ToString("0.####", CultureInfo.CurrentCulture)} ({method})");
+            }
+
+            MessageBox.Show(resultText.ToString(), "Статистическая обработка", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void ProcessLegacy_Click(object sender, RoutedEventArgs e)
         {
 
             if(G1.TestName!=""&&G2.TestName!="")

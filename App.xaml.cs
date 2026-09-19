@@ -1,6 +1,4 @@
 ﻿using Microsoft.Data.Sqlite;
-using System.Configuration;
-using System.Data;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Animation;

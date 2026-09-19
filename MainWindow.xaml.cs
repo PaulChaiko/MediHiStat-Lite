@@ -373,6 +373,12 @@ namespace MediHiStat
 
         List<TestNum> TestCal = new List<TestNum>();
         List<string> TestsList = new List<string>();
+        List<string> CurrentGroupPatientIds = new List<string>();
+        List<Test> CurrentGroupTests = new List<Test>();
+        List<string> Group1PatientIds = new List<string>();
+        List<string> Group2PatientIds = new List<string>();
+        List<Test> Group1Observations = new List<Test>();
+        List<Test> Group2Observations = new List<Test>();
 
         TestNum G1 = new TestNum();
         TestNum G2 = new TestNum();
@@ -699,7 +705,237 @@ namespace MediHiStat
 
         }
 
+        private static bool MatchesTextFilter(string? value, string? filter, bool contains)
+        {
+            string normalizedFilter = filter?.Trim() ?? string.Empty;
+            if (normalizedFilter.Length == 0)
+            {
+                return true;
+            }
+
+            string normalizedValue = value ?? string.Empty;
+            return contains
+                ? normalizedValue.Contains(normalizedFilter, StringComparison.CurrentCultureIgnoreCase)
+                : string.Equals(normalizedValue, normalizedFilter, StringComparison.CurrentCultureIgnoreCase);
+        }
+
+        private static bool MatchesNumericFilter(double value, string? filter)
+        {
+            string normalized = (filter ?? string.Empty)
+                .Trim()
+                .Replace(" ", string.Empty)
+                .Replace(',', '.');
+
+            if (normalized.Length == 0)
+            {
+                return true;
+            }
+
+            if (normalized.StartsWith("<=", StringComparison.Ordinal))
+            {
+                return value <= ParseFilterNumber(normalized[2..]);
+            }
+
+            if (normalized.StartsWith(">=", StringComparison.Ordinal))
+            {
+                return value >= ParseFilterNumber(normalized[2..]);
+            }
+
+            if (normalized.StartsWith('<'))
+            {
+                return value < ParseFilterNumber(normalized[1..]);
+            }
+
+            if (normalized.StartsWith('>'))
+            {
+                return value > ParseFilterNumber(normalized[1..]);
+            }
+
+            int rangeSeparatorIndex = normalized.IndexOf('-', 1);
+            if (rangeSeparatorIndex > 0)
+            {
+                double lowerBound = ParseFilterNumber(normalized[..rangeSeparatorIndex]);
+                double upperBound = ParseFilterNumber(normalized[(rangeSeparatorIndex + 1)..]);
+
+                if (lowerBound > upperBound)
+                {
+                    (lowerBound, upperBound) = (upperBound, lowerBound);
+                }
+
+                return value >= lowerBound && value <= upperBound;
+            }
+
+            return value.Equals(ParseFilterNumber(normalized));
+        }
+
+        private static double ParseFilterNumber(string text)
+        {
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+            {
+                throw new FormatException($"Не удалось распознать числовой фильтр: {text}");
+            }
+
+            return value;
+        }
+
+        private static string[] GetTimePointValues(Test test)
+        {
+            return new[]
+            {
+                test.Day0,
+                test.Day1,
+                test.Day2,
+                test.Day3,
+                test.Day4,
+                test.Day5,
+                test.Day6,
+                test.Day7,
+                test.Day8,
+                test.Day9_12,
+                test.Day12_16
+            };
+        }
+
+        private static void SetTimePointMeans(TestNum target, IReadOnlyList<double> means)
+        {
+            target.Day0 = means[0];
+            target.Day1 = means[1];
+            target.Day2 = means[2];
+            target.Day3 = means[3];
+            target.Day4 = means[4];
+            target.Day5 = means[5];
+            target.Day6 = means[6];
+            target.Day7 = means[7];
+            target.Day8 = means[8];
+            target.Day9_12 = means[9];
+            target.Day12_16 = means[10];
+        }
+
+        private static Test CreateDescriptiveStatisticsRow(
+            string testName,
+            IReadOnlyList<DescriptiveStatistics> statistics)
+        {
+            return new Test
+            {
+                TestName = testName,
+                Day0 = FormatDescriptiveStatistics(statistics[0]),
+                Day1 = FormatDescriptiveStatistics(statistics[1]),
+                Day2 = FormatDescriptiveStatistics(statistics[2]),
+                Day3 = FormatDescriptiveStatistics(statistics[3]),
+                Day4 = FormatDescriptiveStatistics(statistics[4]),
+                Day5 = FormatDescriptiveStatistics(statistics[5]),
+                Day6 = FormatDescriptiveStatistics(statistics[6]),
+                Day7 = FormatDescriptiveStatistics(statistics[7]),
+                Day8 = FormatDescriptiveStatistics(statistics[8]),
+                Day9_12 = FormatDescriptiveStatistics(statistics[9]),
+                Day12_16 = FormatDescriptiveStatistics(statistics[10])
+            };
+        }
+
+        private static string FormatDescriptiveStatistics(DescriptiveStatistics statistics)
+        {
+            if (statistics.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            string mean = Math.Round(statistics.Mean, 2).ToString("0.##", CultureInfo.CurrentCulture);
+            if (statistics.Count == 1 || double.IsNaN(statistics.SampleStandardDeviation))
+            {
+                return mean;
+            }
+
+            string standardDeviation = Math.Round(statistics.SampleStandardDeviation, 2)
+                .ToString("0.##", CultureInfo.CurrentCulture);
+            return $"{mean}±{standardDeviation}";
+        }
+
         private void TableStarter_Click(object sender, RoutedEventArgs e)
+        {
+            Check1 = true;
+            Check2 = true;
+
+            try
+            {
+                CurrentGroupPatientIds = Persons
+                    .Where(person =>
+                        MatchesTextFilter(person.PersonID, personDataGrids2[0].Info, false)
+                        && MatchesTextFilter(person.PatientGroup, personDataGrids2[1].Info, false)
+                        && MatchesNumericFilter(person.Age, personDataGrids2[2].Info)
+                        && MatchesTextFilter(person.Sex, personDataGrids2[3].Info, false)
+                        && MatchesNumericFilter(person.Height, personDataGrids2[4].Info)
+                        && MatchesNumericFilter(person.Weight, personDataGrids2[5].Info)
+                        && MatchesTextFilter(person.Complaints, personDataGrids2[6].Info, true)
+                        && MatchesTextFilter(person.Duration, personDataGrids2[7].Info, false)
+                        && MatchesTextFilter(person.Diagnosis, personDataGrids2[8].Info, true)
+                        && MatchesTextFilter(person.AddDiagnosis, personDataGrids2[9].Info, true)
+                        && MatchesTextFilter(person.Operation, personDataGrids2[10].Info, true))
+                    .Select(person => person.PersonID)
+                    .ToList();
+            }
+            catch (FormatException exception)
+            {
+                MessageBox.Show(exception.Message, "Проверка фильтров", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            N0 = CurrentGroupPatientIds.Count;
+            var selectedPatientIds = CurrentGroupPatientIds.ToHashSet();
+            CurrentGroupTests = Tests
+                .Where(test => selectedPatientIds.Contains(test.PersonID))
+                .ToList();
+
+            TestCal.Clear();
+            TestsList.Clear();
+
+            var displayRows = new List<Test>();
+            IEnumerable<string> testNames = CurrentGroupTests
+                .Select(test => test.TestName)
+                .Where(testName => !string.IsNullOrWhiteSpace(testName))
+                .Distinct();
+
+            foreach (string testName in testNames)
+            {
+                List<Test> observations = CurrentGroupTests
+                    .Where(test => test.TestName == testName)
+                    .ToList();
+                var statisticsByTimePoint = new List<DescriptiveStatistics>(11);
+                var means = new List<double>(11);
+
+                for (int timePointIndex = 0; timePointIndex < 11; timePointIndex++)
+                {
+                    var values = new List<double>();
+                    foreach (Test observation in observations)
+                    {
+                        string valueText = GetTimePointValues(observation)[timePointIndex];
+                        if (StatisticsCalculator.TryParseMeasurement(valueText, out double value))
+                        {
+                            values.Add(value);
+                        }
+                    }
+
+                    DescriptiveStatistics statistics = StatisticsCalculator.CalculateDescriptive(values);
+                    statisticsByTimePoint.Add(statistics);
+                    means.Add(statistics.Count == 0 ? 0 : Math.Round(statistics.Mean, 2));
+                }
+
+                var meanRow = new TestNum { TestName = testName };
+                SetTimePointMeans(meanRow, means);
+                TestCal.Add(meanRow);
+                TestsList.Add(testName);
+                displayRows.Add(CreateDescriptiveStatisticsRow(testName, statisticsByTimePoint));
+            }
+
+            MainTestsOfMany.ItemsSource = displayRows;
+            HowMany.Text = $"Отображено пациентов: {CurrentGroupPatientIds.Count}";
+
+            Group1.ItemsSource = null;
+            Group2.ItemsSource = null;
+            Group1.ItemsSource = TestsList;
+            Group2.ItemsSource = TestsList;
+        }
+
+        private void TableStarterLegacy_Click(object sender, RoutedEventArgs e)
         {
         
             Check1 = true;

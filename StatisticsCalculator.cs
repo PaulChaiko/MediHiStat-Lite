@@ -5,7 +5,10 @@ namespace MediHiStat
     internal readonly record struct DescriptiveStatistics(
         int Count,
         double Mean,
-        double SampleStandardDeviation);
+        double SampleStandardDeviation,
+        double Median,
+        double FirstQuartile,
+        double ThirdQuartile);
 
     internal readonly record struct MannWhitneyResult(
         int Group1Count,
@@ -15,6 +18,21 @@ namespace MediHiStat
         double U,
         double PValue,
         bool UsedExactPValue);
+
+    internal sealed record CategoricalComparisonResult(
+        IReadOnlyList<string> Categories,
+        IReadOnlyList<int> Group1Counts,
+        IReadOnlyList<int> Group2Counts,
+        int Group1Count,
+        int Group2Count,
+        double ChiSquare,
+        int DegreesOfFreedom,
+        double PearsonPValue,
+        double ReportedPValue,
+        double CramersV,
+        double MinimumExpectedCount,
+        int ExpectedCountsBelowFive,
+        bool UsedFisherExact);
 
     internal static class StatisticsCalculator
     {
@@ -43,20 +61,141 @@ namespace MediHiStat
 
             if (sample.Length == 0)
             {
-                return new DescriptiveStatistics(0, double.NaN, double.NaN);
+                return new DescriptiveStatistics(
+                    0,
+                    double.NaN,
+                    double.NaN,
+                    double.NaN,
+                    double.NaN,
+                    double.NaN);
             }
 
+            Array.Sort(sample);
             double mean = sample.Average();
+            double median = CalculatePercentile(sample, 0.5);
+            double firstQuartile = CalculatePercentile(sample, 0.25);
+            double thirdQuartile = CalculatePercentile(sample, 0.75);
 
             if (sample.Length == 1)
             {
-                return new DescriptiveStatistics(1, mean, double.NaN);
+                return new DescriptiveStatistics(
+                    1,
+                    mean,
+                    double.NaN,
+                    median,
+                    firstQuartile,
+                    thirdQuartile);
             }
 
             double squaredDeviationSum = sample.Sum(value => Math.Pow(value - mean, 2));
             double sampleStandardDeviation = Math.Sqrt(squaredDeviationSum / (sample.Length - 1));
 
-            return new DescriptiveStatistics(sample.Length, mean, sampleStandardDeviation);
+            return new DescriptiveStatistics(
+                sample.Length,
+                mean,
+                sampleStandardDeviation,
+                median,
+                firstQuartile,
+                thirdQuartile);
+        }
+
+        public static CategoricalComparisonResult CalculateCategoricalComparison(
+            IEnumerable<string?> group1Values,
+            IEnumerable<string?> group2Values)
+        {
+            string[] group1 = group1Values
+                .Select(NormalizeCategory)
+                .Where(value => value is not null)
+                .Select(value => value!)
+                .ToArray();
+            string[] group2 = group2Values
+                .Select(NormalizeCategory)
+                .Where(value => value is not null)
+                .Select(value => value!)
+                .ToArray();
+
+            if (group1.Length == 0 || group2.Length == 0)
+            {
+                throw new ArgumentException("Обе сравниваемые группы должны содержать категориальные наблюдения.");
+            }
+
+            string[] categories = group1
+                .Concat(group2)
+                .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                .OrderBy(value => value, StringComparer.CurrentCultureIgnoreCase)
+                .ToArray();
+
+            if (categories.Length < 2)
+            {
+                throw new ArgumentException("Для сравнения нужны как минимум две категории.");
+            }
+
+            int[] group1Counts = categories
+                .Select(category => group1.Count(value => string.Equals(
+                    value,
+                    category,
+                    StringComparison.CurrentCultureIgnoreCase)))
+                .ToArray();
+            int[] group2Counts = categories
+                .Select(category => group2.Count(value => string.Equals(
+                    value,
+                    category,
+                    StringComparison.CurrentCultureIgnoreCase)))
+                .ToArray();
+
+            int totalCount = group1.Length + group2.Length;
+            double chiSquare = 0;
+            double minimumExpectedCount = double.PositiveInfinity;
+            int expectedCountsBelowFive = 0;
+
+            for (int column = 0; column < categories.Length; column++)
+            {
+                int columnTotal = group1Counts[column] + group2Counts[column];
+                double group1Expected = group1.Length * columnTotal / (double)totalCount;
+                double group2Expected = group2.Length * columnTotal / (double)totalCount;
+
+                minimumExpectedCount = Math.Min(
+                    minimumExpectedCount,
+                    Math.Min(group1Expected, group2Expected));
+                if (group1Expected < 5)
+                {
+                    expectedCountsBelowFive++;
+                }
+                if (group2Expected < 5)
+                {
+                    expectedCountsBelowFive++;
+                }
+
+                chiSquare += Math.Pow(group1Counts[column] - group1Expected, 2) / group1Expected;
+                chiSquare += Math.Pow(group2Counts[column] - group2Expected, 2) / group2Expected;
+            }
+
+            int degreesOfFreedom = categories.Length - 1;
+            double pearsonPValue = ChiSquareSurvivalProbability(chiSquare, degreesOfFreedom);
+            bool useFisherExact = categories.Length == 2 && expectedCountsBelowFive > 0;
+            double reportedPValue = useFisherExact
+                ? CalculateFisherExactTwoSided(
+                    group1Counts[0],
+                    group1Counts[1],
+                    group2Counts[0],
+                    group2Counts[1])
+                : pearsonPValue;
+            double cramersV = Math.Sqrt(chiSquare / totalCount);
+
+            return new CategoricalComparisonResult(
+                categories,
+                group1Counts,
+                group2Counts,
+                group1.Length,
+                group2.Length,
+                chiSquare,
+                degreesOfFreedom,
+                pearsonPValue,
+                reportedPValue,
+                cramersV,
+                minimumExpectedCount,
+                expectedCountsBelowFive,
+                useFisherExact);
         }
 
         public static MannWhitneyResult CalculateMannWhitney(
@@ -173,6 +312,129 @@ namespace MediHiStat
             }
 
             return true;
+        }
+
+        private static double CalculatePercentile(IReadOnlyList<double> sortedValues, double probability)
+        {
+            if (sortedValues.Count == 1)
+            {
+                return sortedValues[0];
+            }
+
+            double position = probability * (sortedValues.Count - 1);
+            int lowerIndex = (int)Math.Floor(position);
+            int upperIndex = (int)Math.Ceiling(position);
+            double fraction = position - lowerIndex;
+            return sortedValues[lowerIndex]
+                + (sortedValues[upperIndex] - sortedValues[lowerIndex]) * fraction;
+        }
+
+        private static string? NormalizeCategory(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return string.Join(
+                " ",
+                value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        private static double CalculateFisherExactTwoSided(int a, int b, int c, int d)
+        {
+            int firstRowTotal = a + b;
+            int firstColumnTotal = a + c;
+            int secondColumnTotal = b + d;
+            int total = firstRowTotal + c + d;
+            int minimumA = Math.Max(0, firstRowTotal - secondColumnTotal);
+            int maximumA = Math.Min(firstRowTotal, firstColumnTotal);
+            double observedProbability = HypergeometricProbability(
+                a,
+                firstRowTotal,
+                firstColumnTotal,
+                secondColumnTotal,
+                total);
+            double pValue = 0;
+
+            for (int candidateA = minimumA; candidateA <= maximumA; candidateA++)
+            {
+                double probability = HypergeometricProbability(
+                    candidateA,
+                    firstRowTotal,
+                    firstColumnTotal,
+                    secondColumnTotal,
+                    total);
+                if (probability <= observedProbability + 1e-12)
+                {
+                    pValue += probability;
+                }
+            }
+
+            return Math.Clamp(pValue, 0, 1);
+        }
+
+        private static double HypergeometricProbability(
+            int firstCell,
+            int firstRowTotal,
+            int firstColumnTotal,
+            int secondColumnTotal,
+            int total)
+        {
+            return Math.Exp(
+                LogCombination(firstColumnTotal, firstCell)
+                + LogCombination(secondColumnTotal, firstRowTotal - firstCell)
+                - LogCombination(total, firstRowTotal));
+        }
+
+        private static double LogCombination(int total, int selected)
+        {
+            if (selected < 0 || selected > total)
+            {
+                return double.NegativeInfinity;
+            }
+
+            selected = Math.Min(selected, total - selected);
+            double result = 0;
+            for (int index = 1; index <= selected; index++)
+            {
+                result += Math.Log(total - selected + index) - Math.Log(index);
+            }
+            return result;
+        }
+
+        private static double ChiSquareSurvivalProbability(double chiSquare, int degreesOfFreedom)
+        {
+            if (chiSquare <= 0)
+            {
+                return 1;
+            }
+
+            double halfChiSquare = chiSquare / 2;
+            if (degreesOfFreedom % 2 == 0)
+            {
+                int terms = degreesOfFreedom / 2;
+                double term = 1;
+                double sum = term;
+                for (int index = 1; index < terms; index++)
+                {
+                    term *= halfChiSquare / index;
+                    sum += term;
+                }
+                return Math.Clamp(Math.Exp(-halfChiSquare) * sum, 0, 1);
+            }
+
+            double survivalProbability = 1 - Erf(Math.Sqrt(halfChiSquare));
+            double recurrenceTerm = Math.Exp(-halfChiSquare)
+                * Math.Sqrt(halfChiSquare)
+                / (0.5 * Math.Sqrt(Math.PI));
+            int recurrenceSteps = (degreesOfFreedom - 1) / 2;
+            for (int step = 0; step < recurrenceSteps; step++)
+            {
+                survivalProbability += recurrenceTerm;
+                recurrenceTerm *= halfChiSquare / (step + 1.5);
+            }
+            return Math.Clamp(survivalProbability, 0, 1);
         }
 
         private static double CalculateExactTwoSidedPValue(double[] ranks, int group1Count, double observedU)

@@ -2,8 +2,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
-using System.Text;
-
 using System.Runtime.CompilerServices;
 
 using System.Windows;
@@ -280,8 +278,24 @@ namespace MediHiStat
         bool Check1 = true;
         bool Check2 = true;
 
-        Polyline PG1 = new Polyline();
-        Polyline PG2 = new Polyline();
+        private readonly List<UIElement> _graphElements = new List<UIElement>();
+        private List<double>[]? _lastGroup1Samples;
+        private List<double>[]? _lastGroup2Samples;
+
+        private static readonly string[] TimePointNames =
+        {
+            "0 сутки",
+            "1 сутки",
+            "2 сутки",
+            "3 сутки",
+            "4 сутки",
+            "5 сутки",
+            "6 сутки",
+            "7 сутки",
+            "8 сутки",
+            "9–12 сутки",
+            "12–16 сутки"
+        };
 
 
         void NewActvePerson(ObservableCollection<PersonDataGrid> A, Person B)
@@ -639,15 +653,20 @@ namespace MediHiStat
                 return string.Empty;
             }
 
-            string mean = Math.Round(statistics.Mean, 2).ToString("0.##", CultureInfo.CurrentCulture);
-            if (statistics.Count == 1 || double.IsNaN(statistics.SampleStandardDeviation))
-            {
-                return mean;
-            }
+            string mean = FormatNumber(statistics.Mean);
+            string standardDeviation = double.IsNaN(statistics.SampleStandardDeviation)
+                ? "—"
+                : FormatNumber(statistics.SampleStandardDeviation);
+            string median = FormatNumber(statistics.Median);
+            string firstQuartile = FormatNumber(statistics.FirstQuartile);
+            string thirdQuartile = FormatNumber(statistics.ThirdQuartile);
+            return $"n={statistics.Count}; среднее±SD: {mean}±{standardDeviation}\n" +
+                $"Me [Q1; Q3]: {median} [{firstQuartile}; {thirdQuartile}]";
+        }
 
-            string standardDeviation = Math.Round(statistics.SampleStandardDeviation, 2)
-                .ToString("0.##", CultureInfo.CurrentCulture);
-            return $"{mean}±{standardDeviation}";
+        private static string FormatNumber(double value, string format = "0.##")
+        {
+            return Math.Round(value, 4).ToString(format, CultureInfo.CurrentCulture);
         }
 
         private void TableStarter_Click(object sender, RoutedEventArgs e)
@@ -839,79 +858,239 @@ namespace MediHiStat
             return samples;
         }
 
+        private static List<string>[] ExtractCategoricalTimePointSamples(IEnumerable<Test> observations)
+        {
+            List<string>[] samples = Enumerable.Range(0, 11)
+                .Select(_ => new List<string>())
+                .ToArray();
+
+            foreach (Test observation in observations)
+            {
+                string[] values = GetTimePointValues(observation);
+                for (int index = 0; index < values.Length; index++)
+                {
+                    if (!string.IsNullOrWhiteSpace(values[index]))
+                    {
+                        samples[index].Add(values[index]);
+                    }
+                }
+            }
+
+            return samples;
+        }
+
         private void DrawComparisonGraph(
             IReadOnlyList<List<double>> group1Samples,
             IReadOnlyList<List<double>> group2Samples)
         {
-            double?[] group1Means = group1Samples
-                .Select(sample => sample.Count == 0 ? (double?)null : sample.Average())
+            DescriptiveStatistics[] group1Statistics = group1Samples
+                .Select(StatisticsCalculator.CalculateDescriptive)
                 .ToArray();
-            double?[] group2Means = group2Samples
-                .Select(sample => sample.Count == 0 ? (double?)null : sample.Average())
+            DescriptiveStatistics[] group2Statistics = group2Samples
+                .Select(StatisticsCalculator.CalculateDescriptive)
+                .ToArray();
+            bool showMedian = GraphStatisticMode.SelectedIndex == 1;
+
+            (double?[] group1Centers, double?[] group1Lower, double?[] group1Upper) =
+                CreateGraphSeries(group1Statistics, showMedian);
+            (double?[] group2Centers, double?[] group2Lower, double?[] group2Upper) =
+                CreateGraphSeries(group2Statistics, showMedian);
+
+            double[] availableBounds = group1Lower
+                .Concat(group1Upper)
+                .Concat(group2Lower)
+                .Concat(group2Upper)
+                .Where(value => value.HasValue)
+                .Select(value => value!.Value)
                 .ToArray();
 
-            double[] availableMeans = group1Means
-                .Concat(group2Means)
-                .Where(mean => mean.HasValue)
-                .Select(mean => mean!.Value)
-                .ToArray();
-
-            if (availableMeans.Length == 0)
+            if (availableBounds.Length == 0)
             {
                 return;
             }
 
-            double maximum = Math.Max(0, availableMeans.Max());
-            double scaleMaximum = maximum > 0 ? maximum * 1.1 : 1;
+            double scaleMinimum = Math.Min(0, availableBounds.Min());
+            double scaleMaximum = Math.Max(0, availableBounds.Max());
+            if (Math.Abs(scaleMaximum - scaleMinimum) < 1e-12)
+            {
+                scaleMaximum = scaleMinimum + 1;
+            }
+            else
+            {
+                double padding = (scaleMaximum - scaleMinimum) * 0.05;
+                if (scaleMinimum < 0)
+                {
+                    scaleMinimum -= padding;
+                }
+                if (scaleMaximum > 0)
+                {
+                    scaleMaximum += padding;
+                }
+            }
 
-            Y10.Text = Math.Round(scaleMaximum, 2).ToString(CultureInfo.CurrentCulture);
-            Y9.Text = Math.Round(scaleMaximum * 0.9, 2).ToString(CultureInfo.CurrentCulture);
-            Y8.Text = Math.Round(scaleMaximum * 0.8, 2).ToString(CultureInfo.CurrentCulture);
-            Y7.Text = Math.Round(scaleMaximum * 0.7, 2).ToString(CultureInfo.CurrentCulture);
-            Y6.Text = Math.Round(scaleMaximum * 0.6, 2).ToString(CultureInfo.CurrentCulture);
-            Y5.Text = Math.Round(scaleMaximum * 0.5, 2).ToString(CultureInfo.CurrentCulture);
-            Y4.Text = Math.Round(scaleMaximum * 0.4, 2).ToString(CultureInfo.CurrentCulture);
-            Y3.Text = Math.Round(scaleMaximum * 0.3, 2).ToString(CultureInfo.CurrentCulture);
-            Y2.Text = Math.Round(scaleMaximum * 0.2, 2).ToString(CultureInfo.CurrentCulture);
-            Y1.Text = Math.Round(scaleMaximum * 0.1, 2).ToString(CultureInfo.CurrentCulture);
+            SetGraphAxisLabels(scaleMinimum, scaleMaximum);
+            ClearGraph();
+            AddGraphSeries(group1Centers, group1Lower, group1Upper, scaleMinimum, scaleMaximum, Brushes.Red);
+            AddGraphSeries(group2Centers, group2Lower, group2Upper, scaleMinimum, scaleMaximum, Brushes.Blue);
 
-            Desk.Children.Remove(PG1);
-            Desk.Children.Remove(PG2);
-
-            PG1 = CreateGraphLine(group1Means, scaleMaximum, Brushes.Red);
-            PG2 = CreateGraphLine(group2Means, scaleMaximum, Brushes.Blue);
-            Desk.Children.Add(PG1);
-            Desk.Children.Add(PG2);
-
-            DeskGroup1.Text = $"{Group1name.Text} {G1.TestName}";
-            DeskGroup2.Text = $"{Group2name.Text} {G2.TestName}";
+            string presentation = showMedian ? "медиана [Q1; Q3]" : "среднее ± SD";
+            DeskGroup1.Text = $"{Group1name.Text} {G1.TestName}; {presentation}";
+            DeskGroup2.Text = $"{Group2name.Text} {G2.TestName}; {presentation}";
         }
 
-        private static Polyline CreateGraphLine(
-            IReadOnlyList<double?> means,
+        private static (double?[] Centers, double?[] Lower, double?[] Upper) CreateGraphSeries(
+            IReadOnlyList<DescriptiveStatistics> statistics,
+            bool showMedian)
+        {
+            var centers = new double?[statistics.Count];
+            var lower = new double?[statistics.Count];
+            var upper = new double?[statistics.Count];
+
+            for (int index = 0; index < statistics.Count; index++)
+            {
+                DescriptiveStatistics item = statistics[index];
+                if (item.Count == 0)
+                {
+                    continue;
+                }
+
+                if (showMedian)
+                {
+                    centers[index] = item.Median;
+                    lower[index] = item.FirstQuartile;
+                    upper[index] = item.ThirdQuartile;
+                }
+                else
+                {
+                    centers[index] = item.Mean;
+                    double deviation = double.IsNaN(item.SampleStandardDeviation)
+                        ? 0
+                        : item.SampleStandardDeviation;
+                    lower[index] = item.Mean - deviation;
+                    upper[index] = item.Mean + deviation;
+                }
+            }
+
+            return (centers, lower, upper);
+        }
+
+        private void AddGraphSeries(
+            IReadOnlyList<double?> centers,
+            IReadOnlyList<double?> lower,
+            IReadOnlyList<double?> upper,
+            double scaleMinimum,
             double scaleMaximum,
             Brush color)
         {
-            var points = new PointCollection();
-
-            for (int index = 0; index < means.Count; index++)
+            for (int index = 0; index < centers.Count; index++)
             {
-                if (!means[index].HasValue)
+                if (!centers[index].HasValue || !lower[index].HasValue || !upper[index].HasValue)
                 {
                     continue;
                 }
 
                 double x = 240 + 120 * index;
-                double y = 1300 - ((means[index]!.Value / scaleMaximum * 1000) + 200);
+                double lowerY = GetGraphY(lower[index]!.Value, scaleMinimum, scaleMaximum);
+                double upperY = GetGraphY(upper[index]!.Value, scaleMinimum, scaleMaximum);
+                AddGraphElement(new Line
+                {
+                    X1 = x,
+                    X2 = x,
+                    Y1 = lowerY,
+                    Y2 = upperY,
+                    Stroke = color,
+                    StrokeThickness = 2,
+                    Opacity = 0.55
+                });
+                AddGraphElement(new Line
+                {
+                    X1 = x - 8,
+                    X2 = x + 8,
+                    Y1 = lowerY,
+                    Y2 = lowerY,
+                    Stroke = color,
+                    StrokeThickness = 2,
+                    Opacity = 0.55
+                });
+                AddGraphElement(new Line
+                {
+                    X1 = x - 8,
+                    X2 = x + 8,
+                    Y1 = upperY,
+                    Y2 = upperY,
+                    Stroke = color,
+                    StrokeThickness = 2,
+                    Opacity = 0.55
+                });
+            }
+
+            var points = new PointCollection();
+
+            for (int index = 0; index < centers.Count; index++)
+            {
+                if (!centers[index].HasValue)
+                {
+                    continue;
+                }
+
+                double x = 240 + 120 * index;
+                double y = GetGraphY(centers[index]!.Value, scaleMinimum, scaleMaximum);
                 points.Add(new Point(x, y));
             }
 
-            return new Polyline
+            AddGraphElement(new Polyline
             {
                 Points = points,
                 Stroke = color,
                 StrokeThickness = 3
-            };
+            });
+        }
+
+        private static double GetGraphY(double value, double scaleMinimum, double scaleMaximum)
+        {
+            return 1100 - (value - scaleMinimum) / (scaleMaximum - scaleMinimum) * 1000;
+        }
+
+        private void SetGraphAxisLabels(double scaleMinimum, double scaleMaximum)
+        {
+            TextBox[] labels = { Y0, Y1, Y2, Y3, Y4, Y5, Y6, Y7, Y8, Y9, Y10 };
+            for (int index = 0; index < labels.Length; index++)
+            {
+                double value = scaleMinimum + (scaleMaximum - scaleMinimum) * index / 10;
+                labels[index].Text = FormatNumber(value);
+            }
+        }
+
+        private void AddGraphElement(UIElement element)
+        {
+            Panel.SetZIndex(element, 3);
+            _graphElements.Add(element);
+            Desk.Children.Add(element);
+        }
+
+        private void ClearGraph()
+        {
+            foreach (UIElement element in _graphElements)
+            {
+                Desk.Children.Remove(element);
+            }
+            _graphElements.Clear();
+        }
+
+        private void GraphStatisticMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_lastGroup1Samples is not null && _lastGroup2Samples is not null)
+            {
+                DrawComparisonGraph(_lastGroup1Samples, _lastGroup2Samples);
+            }
+        }
+
+        private void AnalysisMethod_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (GraphStatisticMode is not null)
+            {
+                GraphStatisticMode.IsEnabled = AnalysisMethod.SelectedIndex == 0;
+            }
         }
 
         private void Process_Click(object sender, RoutedEventArgs e)
@@ -934,39 +1113,33 @@ namespace MediHiStat
             if (overlappingPatients.Length > 0)
             {
                 MessageBox.Show(
-                    "Группы пересекаются по пациентам. U-критерий Манна—Уитни применяется к независимым группам; сформируйте непересекающиеся выборки.",
+                    "Группы пересекаются по пациентам. Выбранные методы применяются к независимым группам; сформируйте непересекающиеся выборки.",
                     "Статистическая обработка",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 return;
             }
 
+            if (AnalysisMethod.SelectedIndex == 1)
+            {
+                ProcessCategoricalComparison();
+            }
+            else
+            {
+                ProcessNumericComparison();
+            }
+        }
+
+        private void ProcessNumericComparison()
+        {
             List<double>[] group1Samples = ExtractTimePointSamples(Group1Observations);
             List<double>[] group2Samples = ExtractTimePointSamples(Group2Observations);
+            _lastGroup1Samples = group1Samples;
+            _lastGroup2Samples = group2Samples;
             DrawComparisonGraph(group1Samples, group2Samples);
 
-            string[] timePointNames =
-            {
-                "0 сутки",
-                "1 сутки",
-                "2 сутки",
-                "3 сутки",
-                "4 сутки",
-                "5 сутки",
-                "6 сутки",
-                "7 сутки",
-                "8 сутки",
-                "9–12 сутки",
-                "12–16 сутки"
-            };
-
-            var resultText = new StringBuilder();
-            resultText.AppendLine($"Показатель: {G1.TestName}");
-            resultText.AppendLine("U-критерий Манна—Уитни, двусторонний p-value, поправка Холма");
-            resultText.AppendLine();
-
-            var results = new MannWhitneyResult?[timePointNames.Length];
-            for (int index = 0; index < timePointNames.Length; index++)
+            var results = new MannWhitneyResult?[TimePointNames.Length];
+            for (int index = 0; index < TimePointNames.Length; index++)
             {
                 if (group1Samples[index].Count > 0 && group2Samples[index].Count > 0)
                 {
@@ -982,25 +1155,177 @@ namespace MediHiStat
                     .Select(result => result!.Value.PValue)
                     .ToArray());
             int adjustedPValueIndex = 0;
+            var rows = new List<StatisticalResultRow>(TimePointNames.Length);
 
-            for (int index = 0; index < timePointNames.Length; index++)
+            for (int index = 0; index < TimePointNames.Length; index++)
             {
                 if (!results[index].HasValue)
                 {
-                    resultText.AppendLine($"{timePointNames[index]}: недостаточно числовых данных");
+                    rows.Add(new StatisticalResultRow
+                    {
+                        TimePoint = TimePointNames[index],
+                        Group1Summary = FormatAnalysisSummary(
+                            StatisticsCalculator.CalculateDescriptive(group1Samples[index])),
+                        Group2Summary = FormatAnalysisSummary(
+                            StatisticsCalculator.CalculateDescriptive(group2Samples[index])),
+                        Notes = "Недостаточно числовых данных"
+                    });
                     continue;
                 }
 
                 MannWhitneyResult result = results[index]!.Value;
                 double adjustedPValue = adjustedPValues[adjustedPValueIndex++];
                 string method = result.UsedExactPValue ? "точный" : "асимптотический";
-                resultText.AppendLine(
-                    $"{timePointNames[index]}: n₁={result.Group1Count}; n₂={result.Group2Count}; " +
-                    $"U={Math.Round(result.U, 3)}; p={result.PValue.ToString("0.####", CultureInfo.CurrentCulture)}; " +
-                    $"p(Holm)={adjustedPValue.ToString("0.####", CultureInfo.CurrentCulture)} ({method})");
+                double rankBiserialCorrelation = 2 * result.U1
+                    / (result.Group1Count * (double)result.Group2Count)
+                    - 1;
+                rows.Add(new StatisticalResultRow
+                {
+                    TimePoint = TimePointNames[index],
+                    Group1Summary = FormatAnalysisSummary(
+                        StatisticsCalculator.CalculateDescriptive(group1Samples[index])),
+                    Group2Summary = FormatAnalysisSummary(
+                        StatisticsCalculator.CalculateDescriptive(group2Samples[index])),
+                    Statistic = $"U={FormatNumber(result.U, "0.###")}",
+                    PValue = FormatPValue(result.PValue),
+                    AdjustedPValue = FormatPValue(adjustedPValue),
+                    EffectSize = $"rᵣᵦ={FormatNumber(rankBiserialCorrelation, "0.###")}",
+                    Notes = $"Манн—Уитни, {method} двусторонний p; поправка Холма"
+                });
             }
 
-            MessageBox.Show(resultText.ToString(), "Статистическая обработка", MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowResultsWindow(
+                "U-критерий Манна—Уитни; двусторонний p-value; поправка Холма. " +
+                "В таблице приведены среднее ± SD и медиана [Q1; Q3].",
+                rows);
+        }
+
+        private void ProcessCategoricalComparison()
+        {
+            List<string>[] group1Samples = ExtractCategoricalTimePointSamples(Group1Observations);
+            List<string>[] group2Samples = ExtractCategoricalTimePointSamples(Group2Observations);
+            var results = new CategoricalComparisonResult?[TimePointNames.Length];
+
+            for (int index = 0; index < TimePointNames.Length; index++)
+            {
+                try
+                {
+                    results[index] = StatisticsCalculator.CalculateCategoricalComparison(
+                        group1Samples[index],
+                        group2Samples[index]);
+                }
+                catch (ArgumentException)
+                {
+                    results[index] = null;
+                }
+            }
+
+            double[] adjustedPValues = StatisticsCalculator.AdjustPValuesHolm(
+                results
+                    .Where(result => result is not null)
+                    .Select(result => result!.ReportedPValue)
+                    .ToArray());
+            int adjustedPValueIndex = 0;
+            var rows = new List<StatisticalResultRow>(TimePointNames.Length);
+
+            for (int index = 0; index < TimePointNames.Length; index++)
+            {
+                CategoricalComparisonResult? result = results[index];
+                if (result is null)
+                {
+                    rows.Add(new StatisticalResultRow
+                    {
+                        TimePoint = TimePointNames[index],
+                        Group1Summary = $"n={group1Samples[index].Count}",
+                        Group2Summary = $"n={group2Samples[index].Count}",
+                        Notes = "Недостаточно данных или представлена только одна категория"
+                    });
+                    continue;
+                }
+
+                double adjustedPValue = adjustedPValues[adjustedPValueIndex++];
+                string method = result.UsedFisherExact
+                    ? "Точный критерий Фишера выбран автоматически из-за малых ожидаемых частот"
+                    : "χ² Пирсона";
+                string frequencyWarning = result.ExpectedCountsBelowFive > 0 && !result.UsedFisherExact
+                    ? $"; внимание: ячеек с ожидаемой частотой <5 — {result.ExpectedCountsBelowFive}"
+                    : string.Empty;
+
+                rows.Add(new StatisticalResultRow
+                {
+                    TimePoint = TimePointNames[index],
+                    Group1Summary = FormatCategoryCounts(
+                        result.Group1Count,
+                        result.Categories,
+                        result.Group1Counts),
+                    Group2Summary = FormatCategoryCounts(
+                        result.Group2Count,
+                        result.Categories,
+                        result.Group2Counts),
+                    Statistic = $"χ²={FormatNumber(result.ChiSquare, "0.###")}",
+                    DegreesOfFreedom = result.DegreesOfFreedom.ToString(CultureInfo.CurrentCulture),
+                    PValue = FormatPValue(result.ReportedPValue),
+                    AdjustedPValue = FormatPValue(adjustedPValue),
+                    EffectSize = $"V={FormatNumber(result.CramersV, "0.###")}",
+                    Notes = $"{method}; min ожидаемая частота={FormatNumber(result.MinimumExpectedCount)}" +
+                        frequencyWarning + "; поправка Холма"
+                });
+            }
+
+            ClearGraph();
+            _lastGroup1Samples = null;
+            _lastGroup2Samples = null;
+            DeskGroup1.Text = $"{Group1name.Text} {G1.TestName}";
+            DeskGroup2.Text = "Категориальный анализ: результаты представлены в таблице";
+            ShowResultsWindow(
+                "χ² Пирсона для независимых категориальных данных; для разреженных таблиц 2×2 " +
+                "автоматически используется точный критерий Фишера; поправка Холма.",
+                rows);
+        }
+
+        private static string FormatAnalysisSummary(DescriptiveStatistics statistics)
+        {
+            if (statistics.Count == 0)
+            {
+                return "n=0";
+            }
+
+            string standardDeviation = double.IsNaN(statistics.SampleStandardDeviation)
+                ? "—"
+                : FormatNumber(statistics.SampleStandardDeviation);
+            return $"n={statistics.Count}; среднее±SD: {FormatNumber(statistics.Mean)}±{standardDeviation}; " +
+                $"Me [Q1; Q3]: {FormatNumber(statistics.Median)} " +
+                $"[{FormatNumber(statistics.FirstQuartile)}; {FormatNumber(statistics.ThirdQuartile)}]";
+        }
+
+        private static string FormatCategoryCounts(
+            int totalCount,
+            IReadOnlyList<string> categories,
+            IReadOnlyList<int> counts)
+        {
+            return $"n={totalCount}; " + string.Join(
+                "; ",
+                categories.Select((category, index) => $"{category}: {counts[index]}"));
+        }
+
+        private static string FormatPValue(double pValue)
+        {
+            if (pValue > 0 && pValue < 0.0001)
+            {
+                return "<0,0001";
+            }
+            return pValue.ToString("0.####", CultureInfo.CurrentCulture);
+        }
+
+        private void ShowResultsWindow(
+            string methodDescription,
+            IReadOnlyList<StatisticalResultRow> rows)
+        {
+            var window = new StatisticalResultsWindow(G1.TestName, methodDescription, rows)
+            {
+                Owner = this
+            };
+            window.Show();
         }
 
     }

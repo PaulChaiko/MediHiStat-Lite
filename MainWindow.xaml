@@ -406,10 +406,18 @@
                 <ComboBox Margin="3,3,3,3" x:Name="Group1" SelectionChanged="Group1_SelectionChanged" ></ComboBox>
                     <TextBox TextWrapping="Wrap" Height="40" x:Name="Group2name" IsReadOnly="True" Margin="3,3,3,3">Группа 2:</TextBox>
                 <ComboBox Margin="3,3,3,3" x:Name="Group2" SelectionChanged="Group2_SelectionChanged"></ComboBox>
-                <!--<TextBox IsReadOnly="True" Margin="3,3,3,3">Сравнить</TextBox>
-                <ComboBox Margin="3,3,3,3" x:Name="TableAllPersonDeleteTest"></ComboBox>
-                <TextBox IsReadOnly="True" Margin="3,3,3,3">По какому анализу</TextBox>
-                <ComboBox Margin="3,3,3,3" x:Name="TableAllPersonAddDay"></ComboBox>-->
+
+                <TextBlock Margin="6,8,6,2" Text="Метод сравнения"/>
+                <ComboBox Margin="3" x:Name="AnalysisMethod" SelectedIndex="0" SelectionChanged="AnalysisMethod_SelectionChanged">
+                    <ComboBoxItem Content="Манн—Уитни (числовые данные)"/>
+                    <ComboBoxItem Content="χ² / Фишер (категориальные данные)"/>
+                </ComboBox>
+
+                <TextBlock Margin="6,8,6,2" Text="Отображение числового графика"/>
+                <ComboBox Margin="3" x:Name="GraphStatisticMode" SelectedIndex="0" SelectionChanged="GraphStatisticMode_SelectionChanged">
+                    <ComboBoxItem Content="Среднее ± SD"/>
+                    <ComboBoxItem Content="Медиана [Q1; Q3]"/>
+                </ComboBox>
 
                 <Button Height="25" Margin="3,3,3,3" x:Name="Process" Click="Process_Click">Провести статистическую обработку</Button>
                 <Button Height="25" Margin="3,3,3,3" x:Name="TableStarter" Click="TableStarter_Click">Отобразить группу</Button>

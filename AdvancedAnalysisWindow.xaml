@@ -1,0 +1,105 @@
+<Window x:Class="MediHiStat.AdvancedAnalysisWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Статистический анализ"
+        Width="930" Height="760" MinWidth="820" MinHeight="620"
+        WindowStartupLocation="CenterOwner"
+        Closing="Window_Closing">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Статистический анализ" FontSize="21" FontWeight="SemiBold"/>
+            <TextBlock x:Name="GroupsText" Margin="0,5,0,0" TextWrapping="Wrap"/>
+            <TextBlock Text="Для парных измерений используются значения одного пациента. Пропуски не заменяются нулями."
+                       Foreground="#FF555555" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="SettingsPanel">
+                <TextBlock Text="Задача анализа" FontWeight="SemiBold"/>
+                <ComboBox x:Name="ModeBox" Margin="0,5,0,12" MinHeight="30"
+                          SelectionChanged="Settings_Changed"/>
+                <StackPanel x:Name="IndicatorPanel" Margin="0,0,0,12">
+                    <TextBlock Text="Показатель" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="IndicatorBox" Margin="0,5,0,0" MinHeight="30"
+                              SelectionChanged="Settings_Changed"/>
+                </StackPanel>
+                <StackPanel x:Name="SingleGroupPanel" Margin="0,0,0,12">
+                    <TextBlock Text="Группа для анализа" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="SingleGroupBox" Margin="0,5,0,0" MinHeight="30"
+                              SelectionChanged="Settings_Changed"/>
+                </StackPanel>
+                <Grid x:Name="NormalityPanel" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="Метод проверки нормальности" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="NormalityMethodBox" Margin="0,5,0,0" MinHeight="30"
+                                  SelectionChanged="Settings_Changed"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Проверяемые значения" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="NormalityValuesBox" Margin="0,5,0,0" MinHeight="30"
+                                  SelectionChanged="Settings_Changed"/>
+                    </StackPanel>
+                </Grid>
+                <StackPanel x:Name="CategoryPanel" Margin="0,0,0,12">
+                    <TextBlock Text="Источник категориального признака" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="CategorySourceBox" Margin="0,5,0,8" MinHeight="30"
+                              SelectionChanged="Settings_Changed"/>
+                    <StackPanel x:Name="PatientFieldPanel">
+                        <TextBlock Text="Характеристика пациента" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="PatientFieldBox" Margin="0,5,0,8" MinHeight="30"
+                                  SelectionChanged="Settings_Changed"/>
+                    </StackPanel>
+                    <TextBlock x:Name="CategoryHint" TextWrapping="Wrap" Foreground="#FF555555"/>
+                </StackPanel>
+                <StackPanel x:Name="ReferencePanel" Margin="0,0,0,12">
+                    <TextBlock Text="Ранний срок (исходное измерение для сравнения)" FontWeight="SemiBold"/>
+                    <ComboBox x:Name="ReferenceTimeBox" Margin="0,5,0,0" MinHeight="30"
+                              SelectionChanged="Settings_Changed"/>
+                    <TextBlock Text="Δ = значение в выбранный поздний срок − значение в ранний срок."
+                               TextWrapping="Wrap" Foreground="#FF555555" Margin="0,5,0,0"/>
+                </StackPanel>
+                <StackPanel x:Name="EndpointsPanel" Margin="0,0,0,12">
+                    <TextBlock x:Name="EndpointsLabel" FontWeight="SemiBold"/>
+                    <WrapPanel x:Name="EndpointsHost" Margin="0,5,0,0"/>
+                    <TextBlock x:Name="TimeValidationText" Foreground="#FFA12A2A" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                </StackPanel>
+                <TextBlock Text="Поправка на множественные сравнения" FontWeight="SemiBold"/>
+                <ComboBox x:Name="CorrectionBox" Margin="0,5,0,8" MinHeight="30"
+                          SelectionChanged="Settings_Changed"/>
+                <Border Background="#FFF1F4F7" BorderBrush="#FFD4DBE2" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock x:Name="FamilyText" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                        <TextBlock Text="Семейство включает только выбранные проверки одного показателя в одном режиме. Остальные показатели автоматически не объединяются. Если отдельную проверку выполнить нельзя, её место сохраняется в выбранном семействе."
+                                   TextWrapping="Wrap" Margin="0,5,0,0" Foreground="#FF555555"/>
+                    </StackPanel>
+                </Border>
+                <StackPanel x:Name="CategoryPreviewPanel" Margin="0,3,0,10">
+                    <Button Content="Показать частоты категорий" HorizontalAlignment="Left"
+                            Padding="12,6" Click="PreviewCategories_Click"/>
+                    <TextBox x:Name="PreviewText" Visibility="Collapsed" Margin="0,8,0,0" Padding="8"
+                             IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto" MaxHeight="180"/>
+                </StackPanel>
+                <TextBlock x:Name="ModeHint" TextWrapping="Wrap" Foreground="#FF555555" Margin="0,0,0,8"/>
+            </StackPanel>
+        </ScrollViewer>
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" Grid.Column="0" Margin="0,0,12,0"
+                       VerticalAlignment="Center" TextWrapping="Wrap"/>
+            <Button x:Name="RunButton" Grid.Column="1" Content="Рассчитать" Width="140"
+                    Padding="12,7" Margin="0,0,8,0" Click="RunAnalysis_Click"/>
+            <Button x:Name="CloseButton" Grid.Column="2" Content="Закрыть" Width="100"
+                    Padding="12,7" Click="Close_Click"/>
+        </Grid>
+    </Grid>
+</Window>

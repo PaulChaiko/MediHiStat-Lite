@@ -141,8 +141,10 @@ internal static class Program
             Require(grids.Length == 2, "Expanded patient table must include passport data and measurements.");
             foreach (DataGrid grid in grids) CheckReadOnly(grid);
             DataGrid tests = grids.Single(grid => grid.Columns.Count == 12);
-            Require(tests.Items.Count == PatientTableSchema.TestNames.Length && tests.FrozenColumnCount == 1,
-                "Expanded patient table lost indicators or its fixed indicator column.");
+            Require(tests.Items.Count == PatientTableSchema.TestNames.Length,
+                $"Expanded patient table lost indicators: expected {PatientTableSchema.TestNames.Length}, got {tests.Items.Count}.");
+            Require(tests.FrozenColumnCount == 1,
+                $"Expanded patient table must fix its indicator column: got {tests.FrozenColumnCount} fixed columns.");
             Test original = main.TestsOfOne.Single(row => row.TestName == Indicator);
             Test snapshot = tests.Items.Cast<Test>().Single(row => row.TestName == Indicator);
             Require(snapshot.Day0 == "14" && !ReferenceEquals(snapshot, original),

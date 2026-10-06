@@ -58,10 +58,12 @@ namespace MediHiStat
             }
 
             var testsGrid = MakeGrid();
-            testsGrid.FrozenColumnCount = 1;
             testsGrid.Columns.Add(MakeColumn("Показатель", "TestName", 200));
             for (int index = 0; index < TimeHeaders.Length; index++)
                 testsGrid.Columns.Add(MakeColumn(TimeHeaders[index], TimeProperties[index], 170));
+            // WPF coerces this property to the current column count. Set it only
+            // after creating columns so the indicator remains fixed when scrolling.
+            testsGrid.FrozenColumnCount = 1;
             testsGrid.ItemsSource = rows.Select(CloneRow).ToList();
             if (characteristics is not null) Grid.SetColumn(testsGrid, 1);
             layout.Children.Add(testsGrid);

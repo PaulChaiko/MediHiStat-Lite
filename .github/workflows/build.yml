@@ -6,6 +6,7 @@ on:
       - main
       - update1
       - update2
+      - update3
   pull_request:
     branches:
       - main

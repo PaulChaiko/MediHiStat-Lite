@@ -420,6 +420,7 @@
                 </ComboBox>
 
                 <Button Height="25" Margin="3,3,3,3" x:Name="Process" Click="Process_Click">Провести статистическую обработку</Button>
+                <Button MinHeight="30" Margin="3" Padding="4" Click="AdvancedAnalysis_Click" Content="Выбрать режим анализа…"/>
                 <Button Height="25" Margin="3,3,3,3" x:Name="TableStarter" Click="TableStarter_Click">Отобразить группу</Button>
                     <TextBox Margin="30,3,30,3" x:Name="HowMany" TextAlignment="Center"></TextBox>
 

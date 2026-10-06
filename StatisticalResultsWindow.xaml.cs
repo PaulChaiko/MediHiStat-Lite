@@ -20,7 +20,7 @@ namespace MediHiStat
 
     public partial class StatisticalResultsWindow : Window
     {
-        private static readonly string[] Headers =
+        private readonly string[] _headers =
         {
             "Срок",
             "Группа 1",
@@ -34,15 +34,28 @@ namespace MediHiStat
         };
 
         private readonly IReadOnlyList<StatisticalResultRow> _rows;
+        private readonly string _indicator;
+        private readonly string _methodDescription;
 
         public StatisticalResultsWindow(
             string indicator,
             string methodDescription,
-            IEnumerable<StatisticalResultRow> rows)
+            IEnumerable<StatisticalResultRow> rows,
+            string adjustedPHeader = "p (Холм)",
+            string firstSampleHeader = "Группа 1",
+            string secondSampleHeader = "Группа 2")
         {
             InitializeComponent();
             IndicatorText.Text = $"Показатель: {indicator}";
             MethodText.Text = methodDescription;
+            _indicator = indicator;
+            _methodDescription = methodDescription;
+            _headers[1] = firstSampleHeader;
+            _headers[2] = secondSampleHeader;
+            _headers[6] = adjustedPHeader;
+            ResultsGrid.Columns[1].Header = firstSampleHeader;
+            ResultsGrid.Columns[2].Header = secondSampleHeader;
+            ResultsGrid.Columns[6].Header = adjustedPHeader;
             _rows = rows.ToArray();
             ResultsGrid.ItemsSource = _rows;
         }
@@ -109,12 +122,16 @@ namespace MediHiStat
         private string BuildDelimitedText(char delimiter)
         {
             var builder = new StringBuilder();
-            builder.AppendLine(string.Join(delimiter.ToString(), Headers.Select(value => Escape(value, delimiter))));
+            // Keep the indicator, groups, methods and family definition with each exported row.
+            string[] headers = new[] { "Показатель", "Описание анализа" }.Concat(_headers).ToArray();
+            builder.AppendLine(string.Join(delimiter.ToString(), headers.Select(value => Escape(value, delimiter))));
 
             foreach (StatisticalResultRow row in _rows)
             {
                 string[] values =
                 {
+                    _indicator,
+                    _methodDescription,
                     row.TimePoint,
                     row.Group1Summary,
                     row.Group2Summary,

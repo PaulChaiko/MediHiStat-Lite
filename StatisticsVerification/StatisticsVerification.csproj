@@ -8,5 +8,8 @@
 
   <ItemGroup>
     <Compile Include="..\StatisticsCalculator.cs" Link="StatisticsCalculator.cs" />
+    <Compile Include="..\AnalysisData.cs" Link="AnalysisData.cs" />
+    <Compile Include="..\PairedStatisticsCalculator.cs" Link="PairedStatisticsCalculator.cs" />
+    <Compile Include="..\NormalityCalculator.cs" Link="NormalityCalculator.cs" />
   </ItemGroup>
 </Project>

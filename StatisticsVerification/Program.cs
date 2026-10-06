@@ -62,6 +62,9 @@ CategoricalComparisonResult normalizedCategories = StatisticsCalculator.Calculat
     new[] { "ДА", "нет", "Нет" });
 Assert(normalizedCategories.Categories.Count == 2, "Регистр и пробелы ошибочно создали дополнительные категории.");
 
+AnalysisDataVerification.Run();
+PairedVerification.Run();
+NormalityVerification.Run();
 Console.WriteLine("Все контрольные статистические расчёты выполнены успешно.");
 
 static void Assert(bool condition, string message)

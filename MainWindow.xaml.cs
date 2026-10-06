@@ -1093,6 +1093,30 @@ namespace MediHiStat
             }
         }
 
+        private void AdvancedAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            // Snapshot only: the analysis window never writes to the database.
+            string[] firstIds = (Group1PatientIds.Count > 0
+                ? Group1PatientIds
+                : CurrentGroupPatientIds).ToArray();
+            if (firstIds.Length == 0 && Group2PatientIds.Count == 0)
+            {
+                MessageBox.Show("Сначала задайте фильтры и нажмите «Отобразить группу». Для межгруппового анализа сохраните обе группы выбором показателя.",
+                    "Выбор данных", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var measurements = Tests.Select(test => new MeasurementRecord(
+                test.PersonID, test.TestName, GetTimePointValues(test))).ToArray();
+            var patients = Persons.Select(person => new PatientRecord(
+                person.PersonID, person.PatientGroup, person.Sex, person.Diagnosis, person.Operation)).ToArray();
+            string firstName = Group1PatientIds.Count > 0 ? Group1name.Text : "Отображённая группа";
+            var window = new AdvancedAnalysisWindow(measurements, patients, firstIds,
+                Group2PatientIds.ToArray(), firstName, Group2name.Text,
+                string.IsNullOrWhiteSpace(G1.TestName) ? null : G1.TestName) { Owner = this };
+            window.ShowDialog();
+        }
+
         private void Process_Click(object sender, RoutedEventArgs e)
         {
             if (Group1Observations.Count == 0 || Group2Observations.Count == 0)
@@ -1107,16 +1131,20 @@ namespace MediHiStat
                 return;
             }
 
-            string[] overlappingPatients = Group1PatientIds
-                .Intersect(Group2PatientIds)
-                .ToArray();
-            if (overlappingPatients.Length > 0)
+            try
             {
-                MessageBox.Show(
-                    "Группы пересекаются по пациентам. Выбранные методы применяются к независимым группам; сформируйте непересекающиеся выборки.",
-                    "Статистическая обработка",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                AnalysisData.EnsureIndependentGroups(Group1PatientIds, Group2PatientIds);
+                // The original graph workflow also requires one observation per selected patient.
+                _ = AnalysisData.GetTestCategorySample(Group1Observations.Select(test =>
+                    new MeasurementRecord(test.PersonID, test.TestName, GetTimePointValues(test))),
+                    Group1PatientIds, G1.TestName, 0);
+                _ = AnalysisData.GetTestCategorySample(Group2Observations.Select(test =>
+                    new MeasurementRecord(test.PersonID, test.TestName, GetTimePointValues(test))),
+                    Group2PatientIds, G2.TestName, 0);
+            }
+            catch (ArgumentException exception)
+            {
+                MessageBox.Show(exception.Message, "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1262,8 +1290,8 @@ namespace MediHiStat
                         result.Group2Count,
                         result.Categories,
                         result.Group2Counts),
-                    Statistic = $"χ²={FormatNumber(result.ChiSquare, "0.###")}",
-                    DegreesOfFreedom = result.DegreesOfFreedom.ToString(CultureInfo.CurrentCulture),
+                    Statistic = result.UsedFisherExact ? "— (Фишер)" : $"χ²={FormatNumber(result.ChiSquare, "0.###")}",
+                    DegreesOfFreedom = result.UsedFisherExact ? "—" : result.DegreesOfFreedom.ToString(CultureInfo.CurrentCulture),
                     PValue = FormatPValue(result.ReportedPValue),
                     AdjustedPValue = FormatPValue(adjustedPValue),
                     EffectSize = $"V={FormatNumber(result.CramersV, "0.###")}",
@@ -1305,7 +1333,7 @@ namespace MediHiStat
         {
             return $"n={totalCount}; " + string.Join(
                 "; ",
-                categories.Select((category, index) => $"{category}: {counts[index]}"));
+                categories.Select((category, index) => $"{category}: {counts[index]} ({(100.0 * counts[index] / totalCount).ToString("0.#", CultureInfo.CurrentCulture)}%)"));
         }
 
         private static string FormatPValue(double pValue)

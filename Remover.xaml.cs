@@ -1,64 +1,64 @@
-﻿using Microsoft.Data.Sqlite;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 
 namespace MediHiStat
 {
-    /// <summary>
-    /// Логика взаимодействия для Remover.xaml
-    /// </summary>
     public partial class Remover : Window
     {
+        private readonly PatientStore patientStore = new PatientStore();
+        private IReadOnlyList<string> patientIds = Array.Empty<string>();
+
         public Remover()
         {
             InitializeComponent();
+            try
+            {
+                patientIds = patientStore.GetExistingIds();
+                PatientSearch.Configure(ToRemove, patientIds);
+                RemoveButton.IsEnabled = patientIds.Count > 0;
+                if (patientIds.Count == 0)
+                    Description.Text = "В базе данных пока нет пациентов для удаления.";
+            }
+            catch (Exception exception)
+            {
+                RemoveButton.IsEnabled = false;
+                Description.Text = $"Не удалось прочитать список пациентов.\n\n{exception.Message}";
+            }
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            string personId = ToRemove.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(personId))
+            string typedId = ToRemove.Text.Trim();
+            string? patientId = patientIds.FirstOrDefault(id => string.Equals(id, typedId, StringComparison.OrdinalIgnoreCase));
+            if (patientId == null)
             {
-                MessageBox.Show("Укажите идентификатор пациента.", "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "Выберите пациента из списка или введите его полное название.",
+                    "Проверка данных", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-
-            using var connection = new SqliteConnection("Data Source=mydatabase.db");
-            connection.Open();
-            using var transaction = connection.BeginTransaction();
-
+            var consent = MessageBox.Show(this,
+                $"Удалить пациента «{patientId}» и все его лабораторные показатели из базы данных?",
+                "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            if (consent != MessageBoxResult.Yes) return;
             try
             {
-                using var deleteTestsCommand = new SqliteCommand(
-                    "DELETE FROM Test WHERE PersonID = @PersonID",
-                    connection,
-                    transaction);
-                deleteTestsCommand.Parameters.AddWithValue("@PersonID", personId);
-                int deletedTests = deleteTestsCommand.ExecuteNonQuery();
-
-                using var deletePersonCommand = new SqliteCommand(
-                    "DELETE FROM Person WHERE PersonID = @PersonID",
-                    connection,
-                    transaction);
-                deletePersonCommand.Parameters.AddWithValue("@PersonID", personId);
-                int deletedPersons = deletePersonCommand.ExecuteNonQuery();
-
-                transaction.Commit();
-
-                if (deletedPersons == 0 && deletedTests == 0)
+                if (!patientStore.Delete(patientId))
                 {
-                    MessageBox.Show("Пациент с указанным идентификатором не найден.", "Удаление", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(this, "Пациент уже удалён. Обновите список пациентов.",
+                        "Удаление", MessageBoxButton.OK, MessageBoxImage.Information);
+                    patientIds = patientStore.GetExistingIds();
+                    PatientSearch.Configure(ToRemove, patientIds);
+                    RemoveButton.IsEnabled = patientIds.Count > 0;
                     return;
                 }
-
-                MessageBox.Show($"Пациент {personId} удалён.", "Удаление", MessageBoxButton.OK, MessageBoxImage.Information);
                 DialogResult = true;
             }
             catch (Exception exception)
             {
-                transaction.Rollback();
-                MessageBox.Show($"Не удалось удалить пациента.\n\n{exception.Message}", "Ошибка удаления", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, $"Не удалось удалить пациента.\n\n{exception.Message}",
+                    "Ошибка удаления", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

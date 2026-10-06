@@ -11,5 +11,10 @@
     <Compile Include="..\AnalysisData.cs" Link="AnalysisData.cs" />
     <Compile Include="..\PairedStatisticsCalculator.cs" Link="PairedStatisticsCalculator.cs" />
     <Compile Include="..\NormalityCalculator.cs" Link="NormalityCalculator.cs" />
+    <Compile Include="..\PatientRecord.cs" Link="PatientRecord.cs" />
+    <Compile Include="..\PatientTableSchema.cs" Link="PatientTableSchema.cs" />
+    <Compile Include="..\PatientTableFiles.cs" Link="PatientTableFiles.cs" />
+    <Compile Include="..\PatientStore.cs" Link="PatientStore.cs" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.4" />
   </ItemGroup>
 </Project>

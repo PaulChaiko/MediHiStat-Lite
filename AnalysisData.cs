@@ -5,7 +5,7 @@ namespace MediHiStat
         string Indicator,
         IReadOnlyList<string?> Values);
 
-    internal sealed record PatientRecord(
+    internal sealed record AnalysisPatientRecord(
         string PatientId,
         string Group,
         string? Sex,
@@ -136,7 +136,7 @@ namespace MediHiStat
         }
 
         public static CategorySample GetPatientCategorySample(
-            IEnumerable<PatientRecord> patients,
+            IEnumerable<AnalysisPatientRecord> patients,
             IEnumerable<string> patientIds,
             string field)
         {
@@ -148,8 +148,8 @@ namespace MediHiStat
 
             string[] selected = GetSelectedPatientIds(patientIds, nameof(patientIds));
             var selectedSet = new HashSet<string>(selected, StringComparer.Ordinal);
-            var selectedPatients = new Dictionary<string, PatientRecord>(StringComparer.Ordinal);
-            foreach (PatientRecord patient in patients)
+            var selectedPatients = new Dictionary<string, AnalysisPatientRecord>(StringComparer.Ordinal);
+            foreach (AnalysisPatientRecord patient in patients)
             {
                 ArgumentNullException.ThrowIfNull(patient);
                 if (!selectedSet.Contains(patient.PatientId))
@@ -167,7 +167,7 @@ namespace MediHiStat
             var values = new List<string>();
             foreach (string patientId in selected)
             {
-                if (!selectedPatients.TryGetValue(patientId, out PatientRecord? patient))
+                if (!selectedPatients.TryGetValue(patientId, out AnalysisPatientRecord? patient))
                 {
                     continue;
                 }

@@ -109,7 +109,7 @@ internal static class AnalysisDataVerification
                 "Частоты в предварительном просмотре не совпадают со статистической таблицей.");
         }
 
-        PatientRecord[] patients =
+        AnalysisPatientRecord[] patients =
         {
             new("p2", "800", " Ж ", null, "operation \t A"),
             new("p1", "400", "М", "disease A; disease B", "operation A"),

@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-      - update1
-      - update2
-      - update3
+      - 'update*'
   pull_request:
     branches:
       - main
@@ -21,10 +19,19 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Resolve update label
+        shell: pwsh
+        run: |
+          $branch = if ($env:GITHUB_HEAD_REF) { $env:GITHUB_HEAD_REF } else { $env:GITHUB_REF_NAME }
+          $label = if ($branch -match '^update[0-9]+$') { $branch } else { (Get-Content UPDATE_VERSION.txt -Raw).Trim() }
+          if ($label -notmatch '^update[0-9]+$') { throw 'Invalid update label' }
+          "UPDATE_LABEL=$label" >> $env:GITHUB_ENV
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -40,12 +47,16 @@ jobs:
       - name: Verify statistics
         run: dotnet run --project StatisticsVerification/StatisticsVerification.csproj --configuration Release
 
+      - name: Verify patient interface
+        timeout-minutes: 3
+        run: dotnet run --project UiVerification/UiVerification.csproj --configuration Release
+
       - name: Publish Windows application
         run: dotnet publish MediHiStat.csproj --configuration Release --runtime win-x64 --self-contained true --output publish
 
       - name: Upload Windows application
         uses: actions/upload-artifact@v4
         with:
-          name: MediHiStat-Lite-win-x64
+          name: MediHiStat-Lite-win-x64 - ${{ env.UPDATE_LABEL }}
           path: publish
           if-no-files-found: error

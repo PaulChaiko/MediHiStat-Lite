@@ -27,7 +27,7 @@ namespace MediHiStat
             "6 сутки", "7 сутки", "8 сутки", "9–12 сутки", "12–16 сутки"
         };
         private readonly MeasurementRecord[] _measurements;
-        private readonly PatientRecord[] _patients;
+        private readonly AnalysisPatientRecord[] _patients;
         private readonly string[][] _groups;
         private readonly string[] _groupNames;
         private readonly Dictionary<string, NormalityResult> _normalityCache = new();
@@ -36,7 +36,7 @@ namespace MediHiStat
 
         internal AdvancedAnalysisWindow(
             IEnumerable<MeasurementRecord> measurements,
-            IEnumerable<PatientRecord> patients,
+            IEnumerable<AnalysisPatientRecord> patients,
             IEnumerable<string> group1Ids,
             IEnumerable<string> group2Ids,
             string group1Name,

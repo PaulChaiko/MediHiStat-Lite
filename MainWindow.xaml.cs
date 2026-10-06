@@ -18,10 +18,10 @@ namespace MediHiStat
     {
         public string PersonID { get; set; }
         public string PatientGroup { get; set; }
-        public int Age { get; set; }
+        public int? Age { get; set; }
         public string Sex { get; set; }
-        public double Height { get; set; }
-        public double Weight { get; set; }
+        public double? Height { get; set; }
+        public double? Weight { get; set; }
         public string Complaints { get; set; }
 
         public string Duration { get; set; }
@@ -275,8 +275,12 @@ namespace MediHiStat
         TestNum G1 = new TestNum();
         TestNum G2 = new TestNum();
 
-        bool Check1 = true;
-        bool Check2 = true;
+        private bool _updatingGroupSelectors;
+        private string? _activePatientId;
+        private string[] _currentGroupFilters = Array.Empty<string>();
+        private string[] _group1Filters = Array.Empty<string>();
+        private string[] _group2Filters = Array.Empty<string>();
+        private List<Test> _currentGroupDisplayRows = new List<Test>();
 
         private readonly List<UIElement> _graphElements = new List<UIElement>();
         private List<double>[]? _lastGroup1Samples;
@@ -300,6 +304,7 @@ namespace MediHiStat
 
         void NewActvePerson(ObservableCollection<PersonDataGrid> A, Person B)
         {
+            _activePatientId = B.PersonID;
             A[0].Info = B.PersonID;
             A[1].Info = B.PatientGroup;
             A[2].Info = B.Age.ToString();
@@ -333,90 +338,107 @@ namespace MediHiStat
         public MainWindow()
         {
             InitializeComponent();
+            Title = $"MediHiStat-Lite — {UpdateInfo.Label}";
             TableOnePerson.ItemsSource = personDataGrids;
-            //TableAllPerson.ItemsSource = personDataGrids;
-            // MainTestsOfOne.ItemsSource = Tests;
-            TableOnePersonPatientSearch.ItemsSource = PatientL;
             TableAllPerson.ItemsSource = personDataGrids2;
-
-
-            PersonsPull();
-            TestPull();
-           
-
-
-
-
-
-
-
-            //using (var connection = new SqliteConnection("Data Source=mydatabase.db"))
-            //{
-            //    connection.Open();
-
-
-            //    var sql = "SELECT * FROM Person";
-            //    var command = new SqliteCommand(sql, connection);
-
-
-            //    using (var reader = command.ExecuteReader())
-            //    {
-            //        while (reader.Read())
-            //        {
-            //            Persons.Add(new Person
-            //            {
-            //                PersonID = reader["PersonID"].ToString(),
-            //                PatientGroup = reader["PatientGroup"].ToString(),
-            //                Age = Convert.ToInt32(reader["Age"]),
-            //                Sex = reader["Sex"].ToString(),
-            //                Height = Convert.ToDouble(reader["Height"]),
-            //                Weight = Convert.ToDouble(reader["Weight"]),
-            //                Complaints = reader["Complaints"].ToString(),
-            //                Duration = reader["Duration"].ToString(),
-            //                Diagnosis = reader["Diagnosis"].ToString(),
-            //                AddDiagnosis = reader["AddDiagnosis"].ToString(),
-            //                Operation = reader["Operation"].ToString()
-
-            //            });
-            //        }
-            //    }
-
-            //    PatientCount.Text = $"Всего пациентов: {Persons.Count}";
-
-
-            //}
-
-
-
-            if (Persons.Count != 0) NewActvePerson(personDataGrids, Persons[0]);
-
-
-
-
-
-            //PatientCount.Text = $"Всего пациентов: {Persons.Count}";
-
-
-
-            //MAIN////////////////////////////
+            ReloadDatabaseAndSelections();
         }
 
         private void AddPerson_Click(object sender, RoutedEventArgs e)
         {
-            AddingPerson _Adding = new AddingPerson();
-            _Adding.ShowDialog();
-            PersonsPull();
-            TestPull();
+            ShowDatabaseEditor(new AddingPerson());
+        }
 
+        private void ImportPatients_Click(object sender, RoutedEventArgs e)
+        {
+            ShowDatabaseEditor(new ImportPatientsWindow());
         }
 
         private void RemovePerson_Click(object sender, RoutedEventArgs e)
         {
-            Remover _Remover = new Remover();
-            _Remover.ShowDialog();
+            ShowDatabaseEditor(new Remover());
+        }
+
+        private void ShowDatabaseEditor(Window window)
+        {
+            window.Owner = this;
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            if (window.ShowDialog() == true)
+            {
+                ReloadDatabaseAndSelections();
+            }
+        }
+
+        private void DownloadTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            new TemplateDownloadWindow { Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner }.ShowDialog();
+        }
+
+        private void ExportPatients_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                new ExportPatientsWindow(new PatientStore().ReadAll()) { Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner }.ShowDialog();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(this, exception.Message, "Экспорт пациентов",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void FullPatientTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_activePatientId))
+            {
+                MessageBox.Show(this, "Выберите пациента.", "Полная таблица пациента",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            FullTableWindow.CreatePatient(_activePatientId, personDataGrids, TestsOfOne)
+                .ShowForOwner(this);
+        }
+
+        private void FullGroupTable_Click(object sender, RoutedEventArgs e)
+        {
+            if (CurrentGroupPatientIds.Count == 0)
+            {
+                MessageBox.Show(this, "Сначала задайте фильтры и нажмите «Отобразить группу».",
+                    "Полная таблица группы", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            string filters = DescribeFilters(_currentGroupFilters);
+            FullTableWindow.CreateGroup($"{filters}; пациентов: {CurrentGroupPatientIds.Count}",
+                _currentGroupDisplayRows).ShowForOwner(this);
+        }
+
+        private void ReloadDatabaseAndSelections()
+        {
+            string? previousPatientId = _activePatientId;
             PersonsPull();
             TestPull();
-
+            ClearAllGroupState();
+            string? nextPatientId = Persons.Any(person => person.PersonID == previousPatientId)
+                ? previousPatientId : Persons.FirstOrDefault()?.PersonID;
+            if (nextPatientId is not null)
+            {
+                TableOnePersonPatientSearch.SelectedItem = nextPatientId;
+                NewActvePerson(personDataGrids, Persons.First(person => person.PersonID == nextPatientId));
+            }
+            else
+            {
+                _activePatientId = null;
+                TableOnePersonPatientSearch.SelectedIndex = -1;
+                TableOnePersonPatientSearch.Text = string.Empty;
+                foreach (PersonDataGrid item in personDataGrids) item.Info = string.Empty;
+                TableOnePerson.Items.Refresh();
+                TestsOfOne.Clear();
+                MainTestsOfOne.ItemsSource = null;
+            }
         }
 
         void PersonsPull()
@@ -438,10 +460,10 @@ namespace MediHiStat
                         {
                             PersonID = reader["PersonID"].ToString(),
                             PatientGroup = reader["PatientGroup"].ToString(),
-                            Age = Convert.ToInt32(reader["Age"]),
+                            Age = reader["Age"] is DBNull ? null : Convert.ToInt32(reader["Age"]),
                             Sex = reader["Sex"].ToString(),
-                            Height = Convert.ToDouble(reader["Height"]),
-                            Weight = Convert.ToDouble(reader["Weight"]),
+                            Height = reader["Height"] is DBNull ? null : Convert.ToDouble(reader["Height"]),
+                            Weight = reader["Weight"] is DBNull ? null : Convert.ToDouble(reader["Weight"]),
                             Complaints = reader["Complaints"].ToString(),
                             Duration = reader["Duration"].ToString(),
                             Diagnosis = reader["Diagnosis"].ToString(),
@@ -458,10 +480,8 @@ namespace MediHiStat
                 foreach (Person person in Persons)
                 {
                     PatientL.Add(person.PersonID);
-
                 }
-
-
+                PatientSearch.Configure(TableOnePersonPatientSearch, PatientL);
             }
         }
 
@@ -533,7 +553,7 @@ namespace MediHiStat
                 : string.Equals(normalizedValue, normalizedFilter, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        private static bool MatchesNumericFilter(double value, string? filter)
+        private static bool MatchesNumericFilter(double? value, string? filter)
         {
             string normalized = (filter ?? string.Empty)
                 .Trim()
@@ -543,6 +563,11 @@ namespace MediHiStat
             if (normalized.Length == 0)
             {
                 return true;
+            }
+
+            if (!value.HasValue)
+            {
+                return false;
             }
 
             if (normalized.StartsWith("<=", StringComparison.Ordinal))
@@ -579,7 +604,7 @@ namespace MediHiStat
                 return value >= lowerBound && value <= upperBound;
             }
 
-            return value.Equals(ParseFilterNumber(normalized));
+            return value.Value.Equals(ParseFilterNumber(normalized));
         }
 
         private static double ParseFilterNumber(string text)
@@ -671,8 +696,8 @@ namespace MediHiStat
 
         private void TableStarter_Click(object sender, RoutedEventArgs e)
         {
-            Check1 = true;
-            Check2 = true;
+            TableAllPerson.CommitEdit(DataGridEditingUnit.Cell, true);
+            TableAllPerson.CommitEdit(DataGridEditingUnit.Row, true);
 
             try
             {
@@ -698,6 +723,10 @@ namespace MediHiStat
                 return;
             }
 
+            _currentGroupFilters = personDataGrids2
+                .Where(item => !string.IsNullOrWhiteSpace(item.Info))
+                .Select(item => item.Info.Trim()).ToArray();
+            InvalidateComparison();
             N0 = CurrentGroupPatientIds.Count;
             var selectedPatientIds = CurrentGroupPatientIds.ToHashSet();
             CurrentGroupTests = Tests
@@ -745,96 +774,138 @@ namespace MediHiStat
                 displayRows.Add(CreateDescriptiveStatisticsRow(testName, statisticsByTimePoint));
             }
 
-            MainTestsOfMany.ItemsSource = displayRows;
+            _currentGroupDisplayRows = displayRows;
+            MainTestsOfMany.ItemsSource = _currentGroupDisplayRows;
             HowMany.Text = $"Отображено пациентов: {CurrentGroupPatientIds.Count}";
 
-            Group1.ItemsSource = null;
-            Group2.ItemsSource = null;
-            Group1.ItemsSource = TestsList;
-            Group2.ItemsSource = TestsList;
+            // Preparing another preview does not change the groups already saved.
+            // Each selection below captures the current preview independently.
+            _updatingGroupSelectors = true;
+            try
+            {
+                Group1.ItemsSource = new List<string>(TestsList);
+                Group2.ItemsSource = new List<string>(TestsList);
+                Group1.SelectedIndex = -1;
+                Group2.SelectedIndex = -1;
+            }
+            finally { _updatingGroupSelectors = false; }
         }
 
         private void Group1_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (Group1.SelectedItem is not string selectedTestName || TestCal.Count == 0)
-            {
-                return;
-            }
-
-            TestNum? selectedMean = TestCal.FirstOrDefault(test => test.TestName == selectedTestName);
-            if (selectedMean is null)
-            {
-                return;
-            }
-
-            G1 = selectedMean;
-            Group1PatientIds = new List<string>(CurrentGroupPatientIds);
-            Group1Observations = CurrentGroupTests
-                .Where(test => test.TestName == selectedTestName)
-                .ToList();
-
-
-            if (Check1)
-            {
-                Group1name.Text = "Группа 1: ";
-
-                foreach (var item in personDataGrids2)
-                {
-                    if (!string.IsNullOrWhiteSpace(item.Info))
-                    {
-                        Group1name.Text += item.Info;
-                        Group1name.Text += "; ";
-                    }
-                }
-            }
-
-            if (Group1name.Text == "Группа 1: ")
-            {
-                Group1name.Text += "Все пациенты";
-            }
-
-            Check1 = false;
+            SaveGroupSelection(1, Group1.SelectedItem as string);
         }
 
         private void Group2_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (Group2.SelectedItem is not string selectedTestName || TestCal.Count == 0)
-            {
+            SaveGroupSelection(2, Group2.SelectedItem as string);
+        }
+
+        private void SaveGroupSelection(int groupNumber, string? selectedTestName)
+        {
+            if (_updatingGroupSelectors || selectedTestName is null || TestCal.Count == 0)
                 return;
-            }
 
             TestNum? selectedMean = TestCal.FirstOrDefault(test => test.TestName == selectedTestName);
-            if (selectedMean is null)
+            if (selectedMean is null) return;
+
+            var patientIds = new List<string>(CurrentGroupPatientIds);
+            var observations = CurrentGroupTests.Where(test => test.TestName == selectedTestName).ToList();
+            string[] filters = _currentGroupFilters.ToArray();
+            if (groupNumber == 1)
             {
-                return;
+                G1 = selectedMean;
+                Group1PatientIds = patientIds;
+                Group1Observations = observations;
+                _group1Filters = filters;
+                Group1name.Text = $"Группа 1: {DescribeFilters(_group1Filters)}; {selectedTestName}";
             }
-
-            G2 = selectedMean;
-            Group2PatientIds = new List<string>(CurrentGroupPatientIds);
-            Group2Observations = CurrentGroupTests
-                .Where(test => test.TestName == selectedTestName)
-                .ToList();
-
-            if (Check2)
+            else
             {
-                Group2name.Text = "Группа 2: ";
+                G2 = selectedMean;
+                Group2PatientIds = patientIds;
+                Group2Observations = observations;
+                _group2Filters = filters;
+                Group2name.Text = $"Группа 2: {DescribeFilters(_group2Filters)}; {selectedTestName}";
+            }
+            InvalidateComparison();
+        }
 
-                foreach (var item in personDataGrids2)
+        private static string DescribeFilters(IEnumerable<string> filters)
+        {
+            string description = string.Join("; ", filters);
+            return description.Length == 0 ? "Все пациенты" : description;
+        }
+
+        private void ResetGroup1_Click(object sender, RoutedEventArgs e) => ResetGroup(1);
+        private void ResetGroup2_Click(object sender, RoutedEventArgs e) => ResetGroup(2);
+
+        private void ResetGroup(int groupNumber)
+        {
+            _updatingGroupSelectors = true;
+            try
+            {
+                if (groupNumber == 1)
                 {
-                    if (!string.IsNullOrWhiteSpace(item.Info))
-                    {
-                        Group2name.Text += item.Info;
-                        Group2name.Text += "; ";
-                    }
+                    Group1PatientIds.Clear();
+                    Group1Observations.Clear();
+                    _group1Filters = Array.Empty<string>();
+                    G1 = new TestNum();
+                    Group1.SelectedIndex = -1;
+                    Group1.ItemsSource = null;
+                    Group1name.Text = "Группа 1:";
+                }
+                else
+                {
+                    Group2PatientIds.Clear();
+                    Group2Observations.Clear();
+                    _group2Filters = Array.Empty<string>();
+                    G2 = new TestNum();
+                    Group2.SelectedIndex = -1;
+                    Group2.ItemsSource = null;
+                    Group2name.Text = "Группа 2:";
                 }
             }
+            finally { _updatingGroupSelectors = false; }
 
-            if (Group2name.Text == "Группа 2: ")
-            {
-                Group2name.Text += "Все пациенты";
-            }
+            ClearCurrentGroupPreview();
+            InvalidateComparison();
+        }
 
-            Check2 = false;
+        private void ClearAllGroupState()
+        {
+            ResetGroup(1);
+            ResetGroup(2);
+        }
+
+        private void ClearCurrentGroupPreview()
+        {
+            TableAllPerson.CancelEdit(DataGridEditingUnit.Cell);
+            TableAllPerson.CancelEdit(DataGridEditingUnit.Row);
+            foreach (PersonDataGrid item in personDataGrids2) item.Info = string.Empty;
+            TableAllPerson.Items.Refresh();
+            CurrentGroupPatientIds.Clear();
+            CurrentGroupTests.Clear();
+            _currentGroupFilters = Array.Empty<string>();
+            _currentGroupDisplayRows.Clear();
+            TestCal.Clear();
+            TestsList.Clear();
+            N0 = 0;
+            MainTestsOfMany.ItemsSource = null;
+            HowMany.Text = string.Empty;
+        }
+
+        private void InvalidateComparison()
+        {
+            ClearGraph();
+            _lastGroup1Samples = null;
+            _lastGroup2Samples = null;
+            DeskGroup1.Text = string.Empty;
+            DeskGroup2.Text = string.Empty;
+            SetGraphAxisLabels(0, 10);
+            // Modeless result windows otherwise remain visibly attached to stale groups.
+            foreach (StatisticalResultsWindow window in OwnedWindows.OfType<StatisticalResultsWindow>().ToArray())
+                window.Close();
         }
 
         private static List<double>[] ExtractTimePointSamples(IEnumerable<Test> observations)
@@ -934,8 +1005,8 @@ namespace MediHiStat
             AddGraphSeries(group2Centers, group2Lower, group2Upper, scaleMinimum, scaleMaximum, Brushes.Blue);
 
             string presentation = showMedian ? "медиана [Q1; Q3]" : "среднее ± SD";
-            DeskGroup1.Text = $"{Group1name.Text} {G1.TestName}; {presentation}";
-            DeskGroup2.Text = $"{Group2name.Text} {G2.TestName}; {presentation}";
+            DeskGroup1.Text = $"{Group1name.Text}; {presentation}";
+            DeskGroup2.Text = $"{Group2name.Text}; {presentation}";
         }
 
         private static (double?[] Centers, double?[] Lower, double?[] Upper) CreateGraphSeries(
@@ -1108,7 +1179,7 @@ namespace MediHiStat
 
             var measurements = Tests.Select(test => new MeasurementRecord(
                 test.PersonID, test.TestName, GetTimePointValues(test))).ToArray();
-            var patients = Persons.Select(person => new PatientRecord(
+            var patients = Persons.Select(person => new AnalysisPatientRecord(
                 person.PersonID, person.PatientGroup, person.Sex, person.Diagnosis, person.Operation)).ToArray();
             string firstName = Group1PatientIds.Count > 0 ? Group1name.Text : "Отображённая группа";
             var window = new AdvancedAnalysisWindow(measurements, patients, firstIds,
@@ -1303,7 +1374,7 @@ namespace MediHiStat
             ClearGraph();
             _lastGroup1Samples = null;
             _lastGroup2Samples = null;
-            DeskGroup1.Text = $"{Group1name.Text} {G1.TestName}";
+            DeskGroup1.Text = Group1name.Text;
             DeskGroup2.Text = "Категориальный анализ: результаты представлены в таблице";
             ShowResultsWindow(
                 "χ² Пирсона для независимых категориальных данных; для разреженных таблиц 2×2 " +

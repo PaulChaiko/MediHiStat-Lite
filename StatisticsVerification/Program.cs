@@ -65,6 +65,7 @@ Assert(normalizedCategories.Categories.Count == 2, "Регистр и пробе
 AnalysisDataVerification.Run();
 PairedVerification.Run();
 NormalityVerification.Run();
+PatientTransferVerification.Run();
 Console.WriteLine("Все контрольные статистические расчёты выполнены успешно.");
 
 static void Assert(bool condition, string message)

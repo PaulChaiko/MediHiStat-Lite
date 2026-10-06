@@ -20,7 +20,6 @@ internal static class Program
         string directory = Path.Combine(Path.GetTempPath(), "MediHiStat-ui-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         Environment.CurrentDirectory = directory;
-        Application.ResourceAssembly = typeof(MainWindow).Assembly;
         var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         MainWindow? main = null;
         try

@@ -1407,14 +1407,7 @@ namespace MediHiStat
                 categories.Select((category, index) => $"{category}: {counts[index]} ({(100.0 * counts[index] / totalCount).ToString("0.#", CultureInfo.CurrentCulture)}%)"));
         }
 
-        private static string FormatPValue(double pValue)
-        {
-            if (pValue > 0 && pValue < 0.0001)
-            {
-                return "<0,0001";
-            }
-            return pValue.ToString("0.####", CultureInfo.CurrentCulture);
-        }
+        private static string FormatPValue(double pValue) => StatisticalFormatting.PValue(pValue);
 
         private void ShowResultsWindow(
             string methodDescription,

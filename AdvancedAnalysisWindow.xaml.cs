@@ -529,8 +529,7 @@ namespace MediHiStat
         private static string PairName(int earlier, int later) => $"{TimeNames[earlier]} → {TimeNames[later]}";
         private static string Number(double value, string format = "0.##") => double.IsFinite(value)
             ? value.ToString(format, CultureInfo.CurrentCulture) : "—";
-        private static string PValue(double value) => value >= 0 && value < 0.0001
-            ? "<0,0001" : Number(value, "0.####");
+        private static string PValue(double value) => StatisticalFormatting.PValue(value);
         private static string CorrectionDescription(Correction correction) => correction switch
         {
             Correction.Holm => "Поправка Холма", Correction.Bonferroni => "Поправка Бонферрони", _ => "Без поправки"

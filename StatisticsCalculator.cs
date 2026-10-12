@@ -424,7 +424,7 @@ namespace MediHiStat
                 return Math.Clamp(Math.Exp(-halfChiSquare) * sum, 0, 1);
             }
 
-            double survivalProbability = 1 - Erf(Math.Sqrt(halfChiSquare));
+            double survivalProbability = StatisticalMath.NormalTwoSidedTail(Math.Sqrt(chiSquare));
             double recurrenceTerm = Math.Exp(-halfChiSquare)
                 * Math.Sqrt(halfChiSquare)
                 / (0.5 * Math.Sqrt(Math.PI));
@@ -491,22 +491,8 @@ namespace MediHiStat
             double meanU = group1Count * group2Count / 2.0;
             double correctedDistance = Math.Max(0, Math.Abs(u - meanU) - 0.5);
             double z = correctedDistance / Math.Sqrt(variance);
-            double pValue = 2 * (1 - NormalCdf(z));
-            return Math.Clamp(pValue, 0, 1);
+            return StatisticalMath.NormalTwoSidedTail(z);
         }
 
-        private static double NormalCdf(double value)
-        {
-            return 0.5 * (1 + Erf(value / Math.Sqrt(2)));
-        }
-
-        private static double Erf(double value)
-        {
-            double sign = Math.Sign(value);
-            double absoluteValue = Math.Abs(value);
-            double t = 1 / (1 + 0.3275911 * absoluteValue);
-            double polynomial = (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t;
-            return sign * (1 - polynomial * Math.Exp(-absoluteValue * absoluteValue));
-        }
     }
 }

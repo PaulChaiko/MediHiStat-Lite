@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Windows;
@@ -40,6 +41,10 @@ internal static class Program
             Console.WriteLine("PASS: group snapshots, labels, independent reset and read-only table snapshots");
             VerifyDatabaseReload(main, store);
             Console.WriteLine("PASS: overwrite/delete refresh patient data and invalidate stored analyses");
+            VerifyPValueWrappers();
+            Console.WriteLine("PASS: both statistical windows preserve small p and significance boundaries");
+            VerifyLargeGroupPValues(main, store);
+            Console.WriteLine("PASS: actual 50/55-patient comparison displays and exports bounded tiny p without zeros");
             return 0;
         }
         catch (Exception exception)
@@ -211,6 +216,130 @@ internal static class Program
             && !Named<ComboBox>(main, "TableOnePersonPatientSearch").Items.Cast<string>().Contains("Бета 201")
             && Named<TextBox>(main, "PatientCount").Text.EndsWith("3"),
             "Deleting the active patient left stale card, measurements, picker entry or patient count.");
+    }
+
+    private static void VerifyPValueWrappers()
+    {
+        CultureInfo previous = CultureInfo.CurrentCulture;
+        try
+        {
+            foreach (string cultureName in new[] { "ru-RU", "en-US" })
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+                string tiny = "<" + 0.0001.ToString("0.0000", CultureInfo.CurrentCulture);
+                foreach (double value in new[] { 0.0, 1e-18, 0.0001, 0.049979, Math.BitDecrement(0.05), 0.05,
+                    Math.BitIncrement(0.05), 1.0, double.NaN, double.PositiveInfinity, double.NegativeInfinity, -0.1, 1.1 })
+                {
+                    string basic = FormatWindowPValue(typeof(MainWindow), "FormatPValue", value);
+                    string advanced = FormatWindowPValue(typeof(AdvancedAnalysisWindow), "PValue", value);
+                    Require(basic == advanced, "The basic and advanced windows use inconsistent p formatting.");
+                    if (!double.IsFinite(value) || value < 0 || value > 1)
+                        Require(basic == "—", "Invalid p must not appear as a valid probability in either window.");
+                    else if (value < 0.0001)
+                        Require(basic == tiny, "Tiny/underflowed p must appear as a localized bound in both windows.");
+                    else
+                    {
+                        Require(double.TryParse(basic, NumberStyles.Float, CultureInfo.CurrentCulture, out double shown),
+                            "A displayed p above the cutoff must remain numeric.");
+                        Require(Math.Sign(value - 0.05) == Math.Sign(shown - 0.05),
+                            "The displayed p crossed or collapsed onto significance boundary .05.");
+                    }
+                }
+            }
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    private static string FormatWindowPValue(Type windowType, string methodName, double value) =>
+        (string)(windowType.GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Missing p formatter: {windowType.Name}.{methodName}"))
+            .Invoke(null, new object[] { value })!;
+
+    private static void VerifyLargeGroupPValues(MainWindow main, PatientStore store)
+    {
+        CultureInfo previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ru-RU");
+            // Separate disposable records reproduce the failing cohort sizes without
+            // importing clinical data or changing the earlier UI regression scenarios.
+            PatientRecord[] records = Enumerable.Range(0, 105).Select(index =>
+            {
+                var values = PatientTableSchema.TestNames.ToDictionary(name => name,
+                    _ => Enumerable.Repeat(string.Empty, PatientTableSchema.TimeHeaders.Length).ToArray());
+                values[Indicator] = Enumerable.Repeat(index.ToString(CultureInfo.InvariantCulture),
+                    PatientTableSchema.TimeHeaders.Length).ToArray();
+                return new PatientRecord(new[] { $"Tail {index:000}", index < 50 ? "Tail A" : "Tail B",
+                    "40", "жен", "180", "80", "", "", "", "", "" }, values);
+            }).ToArray();
+            store.Save(records, false);
+            Invoke(main, "ReloadDatabaseAndSelections");
+            main.personDataGrids2[1].Info = "Tail A";
+            Click(main, "TableStarter");
+            Named<ComboBox>(main, "Group1").SelectedItem = Indicator;
+            main.personDataGrids2[1].Info = "Tail B";
+            Click(main, "TableStarter");
+            Named<ComboBox>(main, "Group2").SelectedItem = Indicator;
+            Require(Field<List<string>>(main, "Group1PatientIds").Count == 50
+                && Field<List<string>>(main, "Group2PatientIds").Count == 55,
+                "The UI comparison did not select the 50/55-patient cohorts.");
+            Click(main, "Process");
+            Pump();
+            StatisticalResultsWindow window = main.OwnedWindows.Cast<Window>().OfType<StatisticalResultsWindow>().Single();
+            StatisticalResultRow[] rows = Field<IReadOnlyList<StatisticalResultRow>>(window, "_rows").ToArray();
+            string tiny = "<0,0001";
+            Require(rows.Length == PatientTableSchema.TimeHeaders.Length && rows.All(row => row.Statistic == "U=0"
+                && row.PValue == tiny && row.AdjustedPValue == tiny && row.Notes.Contains("асимптотический")),
+                "The actual comparison window displayed zero p or lost the asymptotic U=0 results.");
+            string csv = (string)(window.GetType().GetMethod("BuildDelimitedText", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Missing results CSV serializer."))
+                .Invoke(window, new object[] { ';' })!;
+            string[] lines = csv.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            Require(lines.Length == rows.Length + 1, "The results CSV lost rows.");
+            foreach (string line in lines.Skip(1))
+            {
+                string[] fields = CsvFields(line);
+                Require(fields.Length == 11 && fields[7] == tiny && fields[8] == tiny,
+                    "The CSV p and Holm cells differ from the displayed nonzero bounds.");
+            }
+            Invoke(main, "ResetGroup", 1);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    private static string[] CsvFields(string line)
+    {
+        var fields = new List<string>();
+        var value = new System.Text.StringBuilder();
+        bool quoted = false;
+        for (int index = 0; index < line.Length; index++)
+        {
+            char current = line[index];
+            if (current == '"')
+            {
+                if (quoted && index + 1 < line.Length && line[index + 1] == '"')
+                {
+                    value.Append('"');
+                    index++;
+                }
+                else quoted = !quoted;
+            }
+            else if (current == ';' && !quoted)
+            {
+                fields.Add(value.ToString());
+                value.Clear();
+            }
+            else value.Append(current);
+        }
+        Require(!quoted, "The results CSV contains an unterminated quoted field.");
+        fields.Add(value.ToString());
+        return fields.ToArray();
     }
 
     private static void CheckReadOnly(DataGrid grid) => Require(grid.IsReadOnly

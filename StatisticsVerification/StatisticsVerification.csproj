@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <Compile Include="..\StatisticsCalculator.cs" Link="StatisticsCalculator.cs" />
+    <Compile Include="..\StatisticalMath.cs" Link="StatisticalMath.cs" />
+    <Compile Include="..\StatisticalFormatting.cs" Link="StatisticalFormatting.cs" />
     <Compile Include="..\AnalysisData.cs" Link="AnalysisData.cs" />
     <Compile Include="..\PairedStatisticsCalculator.cs" Link="PairedStatisticsCalculator.cs" />
     <Compile Include="..\NormalityCalculator.cs" Link="NormalityCalculator.cs" />
